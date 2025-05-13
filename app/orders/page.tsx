@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import { generateSimpleReceipt } from '@/lib/pdf/generateSimpleReceipt';
 import {
   Card,
   CardContent,
@@ -29,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Package, ShoppingBag } from 'lucide-react';
+import { Eye, Package, ShoppingBag, Download, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 interface OrderItem {
@@ -53,6 +54,7 @@ interface Order {
   total: number;
   created_at: string;
   updated_at: string;
+  payment_id?: string;
   address: string;
   city: string;
   state: string;
@@ -62,10 +64,11 @@ interface Order {
 }
 
 export default function OrdersPage() {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -130,6 +133,28 @@ export default function OrdersPage() {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  function handleDownloadReceipt(order: Order) {
+    if (!profile) return;
+    
+    try {
+      setGeneratingPdf(order.id);
+      generateSimpleReceipt(order, profile);
+      toast({
+        title: 'Receipt Downloaded',
+        description: 'Your order receipt has been downloaded successfully.',
+      });
+    } catch (error) {
+      console.error('Error generating receipt:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate receipt. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGeneratingPdf(null);
     }
   }
 
@@ -200,104 +225,137 @@ export default function OrdersPage() {
                     </TableCell>
                     <TableCell>${order.total.toFixed(2)}</TableCell>
                     <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setSelectedOrder(order)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl">
-                          <DialogHeader>
-                            <DialogTitle>Order Details</DialogTitle>
-                          </DialogHeader>
-                          {selectedOrder && (
-                            <div className="space-y-6">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="text-sm text-muted-foreground">
-                                    Order ID: {selectedOrder.id.slice(0, 8)}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Date: {new Date(selectedOrder.created_at).toLocaleDateString()}
-                                  </p>
-                                </div>
-                                <Badge className={getStatusColor(selectedOrder.status)}>
-                                  {selectedOrder.status}
-                                </Badge>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <h3 className="font-semibold mb-2">
-                                    Shipping Address
-                                  </h3>
-                                  <p>{selectedOrder.address}</p>
-                                  <p>{selectedOrder.city}, {selectedOrder.state} {selectedOrder.postal_code}</p>
-                                  <p>{selectedOrder.country}</p>
-                                </div>
-                                <div>
-                                  <h3 className="font-semibold mb-2">Order Summary</h3>
-                                  <div className="flex justify-between">
-                                    <span>Subtotal</span>
-                                    <span>${(selectedOrder.total * 0.9).toFixed(2)}</span>
+                      <div className="flex gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>Order Details</DialogTitle>
+                            </DialogHeader>
+                            {selectedOrder && (
+                              <div className="space-y-6">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">
+                                      Order ID: {selectedOrder.id.slice(0, 8)}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Date: {new Date(selectedOrder.created_at).toLocaleDateString()}
+                                    </p>
                                   </div>
-                                  <div className="flex justify-between">
-                                    <span>Tax</span>
-                                    <span>${(selectedOrder.total * 0.1).toFixed(2)}</span>
+                                  <Badge className={getStatusColor(selectedOrder.status)}>
+                                    {selectedOrder.status}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <h3 className="font-semibold mb-2">
+                                      Shipping Address
+                                    </h3>
+                                    <p>{selectedOrder.address}</p>
+                                    <p>{selectedOrder.city}, {selectedOrder.state} {selectedOrder.postal_code}</p>
+                                    <p>{selectedOrder.country}</p>
                                   </div>
-                                  <div className="flex justify-between font-bold mt-2">
-                                    <span>Total</span>
-                                    <span>${selectedOrder.total.toFixed(2)}</span>
+                                  <div>
+                                    <h3 className="font-semibold mb-2">Order Summary</h3>
+                                    <div className="flex justify-between">
+                                      <span>Subtotal</span>
+                                      <span>${(selectedOrder.total * 0.9).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Tax</span>
+                                      <span>${(selectedOrder.total * 0.1).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between font-bold mt-2">
+                                      <span>Total</span>
+                                      <span>${selectedOrder.total.toFixed(2)}</span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              
-                              <Separator />
-                              
-                              <div>
-                                <h3 className="font-semibold mb-4">Order Items</h3>
-                                <div className="space-y-4">
-                                  {selectedOrder.order_items.map((item) => (
-                                    <div key={item.id} className="flex gap-4">
-                                      <div className="w-16 h-16 bg-muted rounded-md overflow-hidden flex-shrink-0">
-                                        <img 
-                                          src={item.products.image_url} 
-                                          alt={item.products.name} 
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                      <div className="flex-1">
-                                        <h4 className="font-medium">{item.products.name}</h4>
-                                        <div className="flex justify-between mt-1">
-                                          <span className="text-sm text-muted-foreground">
-                                            Qty: {item.quantity} × ${item.price.toFixed(2)}
-                                          </span>
-                                          <span className="font-medium">
-                                            ${(item.quantity * item.price).toFixed(2)}
-                                          </span>
+                                
+                                <Separator />
+                                
+                                <div>
+                                  <h3 className="font-semibold mb-4">Order Items</h3>
+                                  <div className="space-y-4">
+                                    {selectedOrder.order_items.map((item) => (
+                                      <div key={item.id} className="flex gap-4">
+                                        <div className="w-16 h-16 bg-muted rounded-md overflow-hidden flex-shrink-0">
+                                          <img 
+                                            src={item.products.image_url} 
+                                            alt={item.products.name} 
+                                            className="w-full h-full object-cover"
+                                          />
+                                        </div>
+                                        <div className="flex-1">
+                                          <h4 className="font-medium">{item.products.name}</h4>
+                                          <div className="flex justify-between mt-1">
+                                            <span className="text-sm text-muted-foreground">
+                                              Qty: {item.quantity} × ${item.price.toFixed(2)}
+                                            </span>
+                                            <span className="font-medium">
+                                              ${(item.quantity * item.price).toFixed(2)}
+                                            </span>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                              
-                              {selectedOrder.status === 'shipped' && (
-                                <div className="flex justify-center">
-                                  <Button className="w-full sm:w-auto">
-                                    <Package className="mr-2 h-4 w-4" />
-                                    Track Shipment
+                                
+                                <div className="flex justify-center gap-4">
+                                  {selectedOrder.status === 'shipped' && (
+                                    <Button>
+                                      <Package className="mr-2 h-4 w-4" />
+                                      Track Shipment
+                                    </Button>
+                                  )}
+                                  
+                                  <Button 
+                                    variant="outline"
+                                    onClick={() => handleDownloadReceipt(selectedOrder)}
+                                    disabled={generatingPdf === selectedOrder.id}
+                                  >
+                                    {generatingPdf === selectedOrder.id ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Generating...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Download Receipt
+                                      </>
+                                    )}
                                   </Button>
                                 </div>
-                              )}
-                            </div>
+                              </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                        
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDownloadReceipt(order)}
+                          disabled={generatingPdf === order.id}
+                        >
+                          {generatingPdf === order.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
                           )}
-                        </DialogContent>
-                      </Dialog>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

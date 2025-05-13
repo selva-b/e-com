@@ -4,16 +4,44 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useSearchParams, redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import { generateSimpleReceipt } from '@/lib/pdf/generateSimpleReceipt';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Download, CheckCircle, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 
+interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  price: number;
+  products: {
+    name: string;
+    image_url: string;
+  };
+}
+
+interface Order {
+  id: string;
+  user_id: string;
+  status: string;
+  total: number;
+  created_at: string;
+  payment_id?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  order_items: OrderItem[];
+}
+
 export default function OrderSuccessPage() {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
-  const [order, setOrder] = useState(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
@@ -60,15 +88,19 @@ export default function OrderSuccessPage() {
     }
   }
 
-  function generatePDF() {
-    setGeneratingPdf(true);
+  function handleDownloadReceipt() {
+    if (!order || !profile) return;
     
-    // In a real implementation, you would generate a PDF here
-    // For now, we'll just simulate it with a timeout
-    setTimeout(() => {
+    try {
+      setGeneratingPdf(true);
+      generateSimpleReceipt(order, profile);
+      setTimeout(() => {
+        setGeneratingPdf(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
       setGeneratingPdf(false);
-      alert('PDF receipt generated and downloaded!');
-    }, 2000);
+    }
   }
 
   if (isLoading || loading) {
@@ -159,7 +191,7 @@ export default function OrderSuccessPage() {
       </Card>
       
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <Button onClick={generatePDF} disabled={generatingPdf}>
+        <Button onClick={handleDownloadReceipt} disabled={generatingPdf}>
           {generatingPdf ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
