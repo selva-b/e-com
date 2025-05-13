@@ -46,94 +46,127 @@ import {
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
-  price: z.string().transform((val) => parseFloat(val)),
+  price: z.string().min(1, 'Price is required'),
   image_url: z.string().url('Must be a valid URL'),
-  inventory_count: z.string().transform((val) => parseInt(val)),
+  inventory_count: z.string().min(1, 'Inventory count is required'),
   category_id: z.string().min(1, 'Category is required'),
   featured: z.boolean().default(false),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  inventory_count: number;
+  category_id: string;
+  slug: string;
+  featured: boolean;
+  categories?: {
+    name: string;
+  };
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+}
+
 export default function ProductsPage() {
   const { user, isAdmin, isLoading } = useAuth();
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { toast } = useToast();
-  
+
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
       description: '',
-      price: '',
+      price: '0',
       image_url: '',
-      inventory_count: '',
+      inventory_count: '0',
       category_id: '',
       featured: false,
     },
   });
-  
+
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
       redirect('/login');
     }
   }, [user, isAdmin, isLoading]);
-  
+
   useEffect(() => {
     fetchProducts();
     fetchCategories();
   }, []);
-  
+
   async function fetchProducts() {
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*, categories(name)');
-        
+
       if (error) throw error;
-      setProducts(data);
-    } catch (error) {
+      setProducts(data as Product[]);
+    } catch (error: any) {
       toast({
         title: 'Error fetching products',
-        description: error.message,
+        description: error.message || 'Failed to fetch products',
         variant: 'destructive',
       });
     }
   }
-  
+
   async function fetchCategories() {
     try {
       const { data, error } = await supabase
         .from('categories')
         .select('*');
-        
+
       if (error) throw error;
-      setCategories(data);
-    } catch (error) {
+      setCategories(data as Category[]);
+    } catch (error: any) {
       toast({
         title: 'Error fetching categories',
-        description: error.message,
+        description: error.message || 'Failed to fetch categories',
         variant: 'destructive',
       });
     }
   }
-  
+
   async function onSubmit(data: ProductFormValues) {
     try {
-      if (isEditing) {
+      // Convert string values to numbers for database
+      const productData = {
+        name: data.name,
+        description: data.description,
+        price: parseFloat(data.price),
+        image_url: data.image_url,
+        inventory_count: parseInt(data.inventory_count),
+        category_id: data.category_id,
+        featured: data.featured,
+      };
+
+      if (isEditing && selectedProduct) {
         const { error } = await supabase
           .from('products')
           .update({
-            ...data,
+            ...productData,
             updated_at: new Date().toISOString(),
           })
           .eq('id', selectedProduct.id);
-          
+
         if (error) throw error;
-        
+
         toast({
           title: 'Product updated',
           description: 'The product has been updated successfully.',
@@ -142,73 +175,73 @@ export default function ProductsPage() {
         const { error } = await supabase
           .from('products')
           .insert([{
-            ...data,
+            ...productData,
             slug: data.name.toLowerCase().replace(/\s+/g, '-'),
           }]);
-          
+
         if (error) throw error;
-        
+
         toast({
           title: 'Product created',
           description: 'The product has been created successfully.',
         });
       }
-      
+
       form.reset();
       setIsEditing(false);
       setSelectedProduct(null);
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message,
+        description: error.message || 'An error occurred',
         variant: 'destructive',
       });
     }
   }
-  
+
   async function handleDelete(id: string) {
     try {
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', id);
-        
+
       if (error) throw error;
-      
+
       toast({
         title: 'Product deleted',
         description: 'The product has been deleted successfully.',
       });
-      
+
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error deleting product',
-        description: error.message,
+        description: error.message || 'Failed to delete product',
         variant: 'destructive',
       });
     }
   }
-  
-  function handleEdit(product) {
+
+  function handleEdit(product: Product) {
     setIsEditing(true);
     setSelectedProduct(product);
-    form.reset({
-      name: product.name,
-      description: product.description,
-      price: product.price.toString(),
-      image_url: product.image_url,
-      inventory_count: product.inventory_count.toString(),
-      category_id: product.category_id,
-      featured: product.featured,
-    });
+
+    // Reset form with product values
+    form.setValue('name', product.name);
+    form.setValue('description', product.description);
+    form.setValue('price', product.price.toString());
+    form.setValue('image_url', product.image_url);
+    form.setValue('inventory_count', product.inventory_count.toString());
+    form.setValue('category_id', product.category_id);
+    form.setValue('featured', product.featured);
   }
-  
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
-  
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -241,7 +274,7 @@ export default function ProductsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="description"
@@ -255,7 +288,7 @@ export default function ProductsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="price"
@@ -269,7 +302,7 @@ export default function ProductsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="image_url"
@@ -283,7 +316,7 @@ export default function ProductsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="inventory_count"
@@ -297,7 +330,7 @@ export default function ProductsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="category_id"
@@ -325,7 +358,30 @@ export default function ProductsPage() {
                     </FormItem>
                   )}
                 />
-                
+
+                <FormField
+                  control={form.control}
+                  name="featured"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Featured Product</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Display this product on the homepage
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
                 <Button type="submit">
                   {isEditing ? 'Update Product' : 'Create Product'}
                 </Button>
@@ -334,7 +390,7 @@ export default function ProductsPage() {
           </DialogContent>
         </Dialog>
       </div>
-      
+
       <div className="border rounded-lg">
         <Table>
           <TableHeader>

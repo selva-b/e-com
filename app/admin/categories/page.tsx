@@ -4,22 +4,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import {
   Form,
   FormControl,
@@ -28,70 +19,96 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Pencil, Trash2 } from 'lucide-react';
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
+  image: z.string().url('Must be a valid URL').optional(),
 });
 
 type CategoryFormValues = z.infer<typeof categorySchema>;
 
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  image: string | null;
+}
+
 export default function CategoriesPage() {
   const { user, isAdmin, isLoading } = useAuth();
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const { toast } = useToast();
-  
+
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
       description: '',
+      image: '',
     },
   });
-  
+
   useEffect(() => {
-    if (!isLoading && (!user || !isAdmin)) {
-      redirect('/login');
+        redirect('/login');
+        redirect('/');
+      }
     }
   }, [user, isAdmin, isLoading]);
-  
+
   useEffect(() => {
-    fetchCategories();
-  }, []);
-  
+    if (user && isAdmin) {
+      fetchCategories();
+    }
+  }, [user, isAdmin]);
+
   async function fetchCategories() {
     try {
       const { data, error } = await supabase
         .from('categories')
-        .select('*');
+        .select('*')
+        .order('name');
         
       if (error) throw error;
-      setCategories(data);
-    } catch (error) {
+      setCategories(data || []);
+    } catch (error: any) {
       toast({
         title: 'Error fetching categories',
-        description: error.message,
+        description: error.message || 'Failed to fetch categories',
         variant: 'destructive',
       });
     }
   }
-  
+
   async function onSubmit(data: CategoryFormValues) {
     try {
-      if (isEditing) {
+      if (isEditing && selectedCategory) {
         const { error } = await supabase
           .from('categories')
           .update({
-            ...data,
+            name: data.name,
+            description: data.description || null,
+            image: data.image || null,
+            updated_at: new Date().toISOString(),
           })
           .eq('id', selectedCategory.id);
           
@@ -102,11 +119,15 @@ export default function CategoriesPage() {
           description: 'The category has been updated successfully.',
         });
       } else {
+        const slug = data.name.toLowerCase().replace(/\s+/g, '-');
+        
         const { error } = await supabase
           .from('categories')
           .insert([{
-            ...data,
-            slug: data.name.toLowerCase().replace(/\s+/g, '-'),
+            name: data.name,
+            slug,
+            description: data.description || null,
+            image: data.image || null,
           }]);
           
         if (error) throw error;
@@ -121,17 +142,34 @@ export default function CategoriesPage() {
       setIsEditing(false);
       setSelectedCategory(null);
       fetchCategories();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message,
+        description: error.message || 'An error occurred',
         variant: 'destructive',
       });
     }
   }
-  
+
   async function handleDelete(id: string) {
     try {
+      // Check if category has products
+      const { data: products, error: productsError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('category_id', id);
+      
+      if (productsError) throw productsError;
+      
+      if (products && products.length > 0) {
+        toast({
+          title: 'Cannot delete category',
+          description: 'This category has products associated with it. Remove the products first.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from('categories')
         .delete()
@@ -145,123 +183,168 @@ export default function CategoriesPage() {
       });
       
       fetchCategories();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error deleting category',
-        description: error.message,
+        description: error.message || 'Failed to delete category',
         variant: 'destructive',
       });
     }
   }
-  
-  function handleEdit(category) {
+
+  function handleEdit(category: Category) {
     setIsEditing(true);
     setSelectedCategory(category);
-    form.reset({
-      name: category.name,
-      description: category.description || '',
-    });
+    
+    form.setValue('name', category.name);
+    form.setValue('description', category.description || '');
+    form.setValue('image', category.image || '');
   }
-  
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
-  
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Categories</h1>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Category
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {isEditing ? 'Edit Category' : 'Add New Category'}
-              </DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button type="submit">
-                  {isEditing ? 'Update Category' : 'Create Category'}
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="container mx-auto py-10 px-4">
+      <h1 className="text-3xl font-bold mb-8">Category Management</h1>
       
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell>{category.name}</TableCell>
-                <TableCell>{category.description}</TableCell>
-                <TableCell>{category.slug}</TableCell>
-                <TableCell>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Categories</CardTitle>
+              <CardDescription>
+                Manage your product categories
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categories.map((category) => (
+                    <TableRow key={category.id}>
+                      <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableCell>{category.slug}</TableCell>
+                      <TableCell>{category.description}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEdit(category)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDelete(category.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>{isEditing ? 'Edit Category' : 'Add Category'}</CardTitle>
+              <CardDescription>
+                {isEditing ? 'Update category details' : 'Create a new category'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Category name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Category description" 
+                            {...field} 
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="image"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Image URL</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://example.com/image.jpg" 
+                            {...field} 
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleEdit(category)}
-                    >
-                      <Pencil className="h-4 w-4" />
+                    <Button type="submit">
+                      {isEditing ? 'Update Category' : 'Create Category'}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="text-destructive"
-                      onClick={() => handleDelete(category.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    
+                    {isEditing && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setSelectedCategory(null);
+                          form.reset();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    )}
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
