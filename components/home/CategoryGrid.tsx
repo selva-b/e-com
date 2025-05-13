@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 
-type Category = {
+interface Category {
   id: string;
   name: string;
   slug: string;
   description: string | null;
-};
+  image?: string;
+}
 
 const placeholderCategories = [
   {
@@ -57,20 +58,19 @@ const placeholderCategories = [
 ];
 
 export default function CategoryGrid() {
-  const [categories, setCategories] = useState<any[]>(placeholderCategories);
-  const [loading, setLoading] = useState(true);
-  
+  const [categories, setCategories] = useState<Category[]>(placeholderCategories);
+
   useEffect(() => {
     async function fetchCategories() {
       try {
         const { data, error } = await supabase
           .from('categories')
           .select('*');
-          
+
         if (error) {
           throw error;
         }
-        
+
         if (data && data.length > 0) {
           // Map the data to include images (in a real app, you'd store image URLs in your database)
           const categoriesWithImages = data.map((category, index) => ({
@@ -82,23 +82,21 @@ export default function CategoryGrid() {
       } catch (error) {
         console.error('Error fetching categories:', error);
         // Keep using placeholder data if there's an error
-      } finally {
-        setLoading(false);
       }
     }
-    
+
     fetchCategories();
   }, []);
-  
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {categories.map((category) => (
-        <Link 
-          href={`/products?category=${category.slug}`} 
+        <Link
+          href={`/category?slug=${category.slug}`}
           key={category.id}
           className="group overflow-hidden rounded-lg relative h-64"
         >
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
             style={{ backgroundImage: `url(${category.image})` }}
           />

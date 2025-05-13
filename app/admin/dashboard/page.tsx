@@ -32,23 +32,38 @@ export default function AdminDashboard() {
     totalProducts: 0,
   });
   const [ordersData, setOrdersData] = useState([]);
-  
+
   // Redirect if not admin
   useEffect(() => {
-    if (!isLoading && (!user || !isAdmin)) {
-      redirect('/login');
-    }
-  }, [user, isAdmin, isLoading]);
+  const fetchData = async () => {
+    // Fetch data asynchronously
+    const { data: salesData } = await supabase.from('orders').select('total_amount').single();
+    const totalSales = salesData ? salesData.total_amount : 0;
 
-  useEffect(() => {
-    // In a real app, you would fetch this data from your Supabase database
+    const { count: totalProducts } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: totalCustomers } = await supabase
+      .from('customers')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: totalCategories } = await supabase
+      .from('categories')
+      .select('*', { count: 'exact', head: true });
+    const { count: totalOrders } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true });
+
+    // Update the stats state
     setStats({
-      totalSales: 15485.75,
-      totalOrders: 147,
-      totalCustomers: 98,
-      totalProducts: 243,
+      totalSales,
+      totalOrders, // Replace with actual order count if available
+      totalCustomers,
+      totalProducts,
+      totalCategories,
     });
-    
+
     // Simulated sales data
     setOrdersData([
       { name: 'Jan', sales: 4000 },
@@ -59,7 +74,10 @@ export default function AdminDashboard() {
       { name: 'Jun', sales: 2390 },
       { name: 'Jul', sales: 3490 },
     ]);
-  }, []);
+  };
+
+  fetchData();
+}, []); // Empty dependency array to run only once
 
   // Category distribution data
   const categoryData = [
@@ -79,7 +97,7 @@ export default function AdminDashboard() {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-      
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
@@ -93,7 +111,7 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6 flex items-center">
             <div className="p-4 bg-primary/10 rounded-full mr-4">
@@ -105,7 +123,7 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6 flex items-center">
             <div className="p-4 bg-primary/10 rounded-full mr-4">
@@ -117,7 +135,7 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6 flex items-center">
             <div className="p-4 bg-primary/10 rounded-full mr-4">
@@ -130,7 +148,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Charts */}
       <Tabs defaultValue="sales" className="mb-8">
         <TabsList className="mb-4">
@@ -138,7 +156,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="sales">
           <Card>
             <CardHeader>
@@ -165,7 +183,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="orders">
           <Card>
             <CardHeader>
@@ -187,7 +205,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="categories">
           <Card>
             <CardHeader>

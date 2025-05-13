@@ -75,7 +75,8 @@ export default function CartPage() {
                 </div>
                 <div className="flex-1 space-y-2">
                   <div className="flex justify-between">
-                    <h3 className="font-semibold">{item.name}</h3>
+                    <h3 className="font-semibold">{item.name}</h3> 
+                    <h3 className="font-semibold">{item.inventory_count === 0 ? 'Out Of Stock' : ''}</h3> 
                     <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                   <p className="text-muted-foreground">${item.price.toFixed(2)} each</p>
