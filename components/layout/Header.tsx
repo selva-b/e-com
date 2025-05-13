@@ -5,7 +5,6 @@ import { useCartContext } from '@/context/CartContext';
 import { 
   ShoppingBag, 
   User, 
-  Search, 
   Menu,
   LogOut,
   ShoppingCart,
@@ -18,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -37,12 +36,19 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { useTheme } from 'next-themes';
+import NavbarSearch from '@/components/search/NavbarSearch';
 
 export default function Header() {
   const { user, profile, isAdmin, signOut } = useAuth();
   const { cartCount } = useCartContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  // After mounting, we have access to the theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/90 backdrop-blur-sm">
@@ -189,30 +195,29 @@ export default function Header() {
           </Link>
         </nav>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                {theme === "dark" ? (
-                  <Moon className="h-5 w-5" />
-                ) : (
-                  <Sun className="h-5 w-5" />
-                )}
-                <span className="sr-only">Toggle theme</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Only render theme toggle when mounted to avoid hydration mismatch */}
+          {mounted && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  {theme === "dark" ? (
+                    <Moon className="h-5 w-5" />
+                  ) : (
+                    <Sun className="h-5 w-5" />
+                  )}
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/search">
-              <Search className="h-5 w-5" />
-              <span className="sr-only">Search</span>
-            </Link>
-          </Button>
+          {/* Replace the search button with our new NavbarSearch component */}
+          <NavbarSearch />
           
           <Button variant="ghost" size="icon" asChild className="relative">
             <Link href="/cart">

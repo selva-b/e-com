@@ -2,6 +2,9 @@ import { supabase } from '@/lib/supabase/client';
 import ProductCard from '@/components/products/ProductCard';
 import ProductPage from '@/components/products/ProductPage';
 
+// Configure for static export
+export const dynamic = 'force-static';
+
 // Server-side rendering for all products
 export default async function ProductsPage() {
   const { data, error } = await supabase
