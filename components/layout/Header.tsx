@@ -165,7 +165,7 @@ export default function Header() {
           </Sheet>
           <Link href="/" className="flex items-center gap-2">
             <ShoppingBag className="h-6 w-6" />
-            <span className="font-bold text-xl">LuxeMarket</span>
+            <span className="font-bold text-xl">E-com</span>
           </Link>
         </div>
         <nav className="hidden md:flex items-center gap-6">

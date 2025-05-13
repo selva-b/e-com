@@ -17,7 +17,7 @@ export default function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <ShoppingBag className="h-6 w-6" />
-              <span className="font-bold text-xl">LuxeMarket</span>
+              <span className="font-bold text-xl">E-com</span>
             </div>
             <p className="text-muted-foreground mb-4 max-w-xs">
               Your one-stop destination for premium products with exceptional quality and service.
@@ -138,7 +138,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center">
                 <Mail className="h-5 w-5 mr-2 flex-shrink-0 text-muted-foreground" />
-                <span className="text-muted-foreground">support@luxemarket.com</span>
+                <span className="text-muted-foreground">support@E-com.com</span>
               </li>
             </ul>
           </div>
@@ -147,7 +147,7 @@ export default function Footer() {
         <div className="border-t mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} LuxeMarket. All rights reserved.
+              &copy; {new Date().getFullYear()} E-com. All rights reserved.
             </p>
             <div className="mt-4 md:mt-0 flex space-x-6">
               <Link 

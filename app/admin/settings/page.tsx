@@ -67,9 +67,9 @@ export default function SettingsPage() {
   const storeForm = useForm<StoreSettingsValues>({
     resolver: zodResolver(storeSettingsSchema),
     defaultValues: {
-      storeName: 'LuxeMarket',
+      storeName: 'E-com',
       storeDescription: 'Premium E-Commerce Store',
-      contactEmail: 'contact@luxemarket.com',
+      contactEmail: 'contact@E-com.com',
       supportPhone: '+1 (555) 123-4567',
       address: '123 Commerce Street, Shopping District, 10001',
       currency: 'USD',

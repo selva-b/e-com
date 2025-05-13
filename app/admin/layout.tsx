@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 
 export const metadata: Metadata = {
-  title: 'Admin Dashboard | LuxeMarket',
-  description: 'Manage your e-commerce store with the LuxeMarket admin dashboard',
+  title: 'Admin Dashboard | E-com',
+  description: 'Manage your e-commerce store with the E-com admin dashboard',
 };
 
 export default function AdminLayout({

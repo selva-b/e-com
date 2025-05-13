@@ -3,8 +3,8 @@ import RegisterForm from '@/components/auth/RegisterForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Register | LuxeMarket',
-  description: 'Create a new account at LuxeMarket',
+  title: 'Register | E-com',
+  description: 'Create a new account at E-com',
 };
 
 export default function RegisterPage() {

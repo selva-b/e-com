@@ -11,7 +11,7 @@ import Footer from '@/components/layout/Footer';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'LuxeMarket | Premium E-Commerce',
+  title: 'E-com | Premium E-Commerce',
   description: 'Shop the finest products with exceptional quality',
 };
 

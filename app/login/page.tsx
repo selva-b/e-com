@@ -3,8 +3,8 @@ import LoginForm from '@/components/auth/LoginForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Login | LuxeMarket',
-  description: 'Log in to your LuxeMarket account',
+  title: 'Login | E-com',
+  description: 'Log in to your E-com account',
 };
 
 export default function LoginPage() {

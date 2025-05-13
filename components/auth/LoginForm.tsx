@@ -59,7 +59,7 @@ export default function LoginForm() {
       
       toast({
         title: 'Login successful',
-        description: 'Welcome back to LuxeMarket!',
+        description: 'Welcome back to E-com!',
       });
       
       router.push('/');
