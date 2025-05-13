@@ -1,5 +1,5 @@
 // Razorpay configuration
 export const RAZORPAY_CONFIG = {
-  KEY_ID: 'rzp_test_3eVIB91QVNpqhz',
-  SECRET_KEY: 'f97KYA8esSWGqy1z1rsGkmGI'
+  KEY_ID: process.env.RAZORPAY_KEY_ID,
+  SECRET_KEY: process.env.RAZORPAY_SECRET_KEY,
 };
