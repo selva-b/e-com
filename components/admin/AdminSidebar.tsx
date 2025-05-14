@@ -14,6 +14,7 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -55,6 +56,11 @@ const adminRoutes = [
     href: '/admin/inventory',
   },
   {
+    label: 'Templates',
+    icon: Bell,
+    href: '/admin/templates',
+  },
+  {
     label: 'Settings',
     icon: Settings,
     href: '/admin/settings',
@@ -64,9 +70,9 @@ const adminRoutes = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  
+
   return (
-    <div 
+    <div
       className={cn(
         "h-full border-r bg-background transition-all duration-300",
         collapsed ? "w-16" : "w-64"
@@ -81,9 +87,9 @@ export default function AdminSidebar() {
                 Admin Panel
               </Link>
             )}
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setCollapsed(!collapsed)}
               className={cn(
                 "rounded-full p-0 w-8 h-8",
@@ -97,17 +103,17 @@ export default function AdminSidebar() {
               )}
             </Button>
           </div>
-          
+
           {/* Navigation */}
           <nav className="space-y-1 px-2">
             {adminRoutes.map((route) => (
-              <Link 
-                key={route.href} 
+              <Link
+                key={route.href}
                 href={route.href}
                 className={cn(
                   "flex items-center py-3 px-3 rounded-md transition-colors",
-                  pathname === route.href 
-                    ? "bg-primary/10 text-primary" 
+                  pathname === route.href
+                    ? "bg-primary/10 text-primary"
                     : "hover:bg-muted",
                   collapsed ? "justify-center" : "justify-start"
                 )}
@@ -118,10 +124,10 @@ export default function AdminSidebar() {
             ))}
           </nav>
         </div>
-        
+
         {/* User Info */}
         <div className="p-4 border-t">
-          <Link 
+          <Link
             href="/"
             className={cn(
               "flex items-center py-2 rounded-md hover:bg-muted transition-colors",

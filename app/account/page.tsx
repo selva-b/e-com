@@ -28,7 +28,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Lock, MapPin } from 'lucide-react';
+import { User, Lock, MapPin, Bell } from 'lucide-react';
+import FirebasePushSubscriber from '@/components/notifications/FirebasePushSubscriber';
 
 const profileSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
@@ -105,14 +106,14 @@ export default function AccountPage() {
         last_name: profile.last_name,
         email: profile.email,
       });
-      
+
       fetchAddress();
     }
   }, [profile]);
 
   async function fetchAddress() {
     if (!user) return;
-    
+
     try {
       setAddressLoading(true);
       const { data, error } = await supabase
@@ -120,11 +121,11 @@ export default function AccountPage() {
         .select('*')
         .eq('user_id', user.id)
         .single();
-      
+
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
-      
+
       if (data) {
         setAddress(data);
         addressForm.reset({
@@ -144,7 +145,7 @@ export default function AccountPage() {
 
   async function onProfileSubmit(data: ProfileFormValues) {
     if (!user) return;
-    
+
     try {
       const { error } = await supabase
         .from('profiles')
@@ -154,9 +155,9 @@ export default function AccountPage() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
-      
+
       if (error) throw error;
-      
+
       toast({
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.',
@@ -175,15 +176,15 @@ export default function AccountPage() {
       const { error } = await supabase.auth.updateUser({
         password: data.new_password,
       });
-      
+
       if (error) throw error;
-      
+
       passwordForm.reset({
         current_password: '',
         new_password: '',
         confirm_password: '',
       });
-      
+
       toast({
         title: 'Password updated',
         description: 'Your password has been updated successfully.',
@@ -199,7 +200,7 @@ export default function AccountPage() {
 
   async function onAddressSubmit(data: AddressFormValues) {
     if (!user) return;
-    
+
     try {
       if (address) {
         // Update existing address
@@ -210,7 +211,7 @@ export default function AccountPage() {
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', user.id);
-        
+
         if (error) throw error;
       } else {
         // Insert new address
@@ -220,15 +221,15 @@ export default function AccountPage() {
             user_id: user.id,
             ...data,
           }]);
-        
+
         if (error) throw error;
       }
-      
+
       toast({
         title: 'Address updated',
         description: 'Your address has been updated successfully.',
       });
-      
+
       fetchAddress();
     } catch (error) {
       toast({
@@ -254,8 +255,11 @@ export default function AccountPage() {
 
   return (
     <div className="container max-w-4xl mx-auto py-16 px-4">
-      <h1 className="text-3xl font-bold mb-8">My Account</h1>
-      
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">My Account</h1>
+        <FirebasePushSubscriber />
+      </div>
+
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile" className="flex items-center gap-2">
@@ -268,7 +272,7 @@ export default function AccountPage() {
             <MapPin className="h-4 w-4" /> Address
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="profile">
           <Card>
             <CardHeader>
@@ -330,7 +334,7 @@ export default function AccountPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="password">
           <Card>
             <CardHeader>
@@ -387,7 +391,7 @@ export default function AccountPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="address">
           <Card>
             <CardHeader>

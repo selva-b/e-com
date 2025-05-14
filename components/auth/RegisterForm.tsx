@@ -56,29 +56,38 @@ export default function RegisterForm() {
 
   async function onSubmit(data: RegisterFormValues) {
     setIsLoading(true);
-    
+
     try {
-      const { error } = await signUp(
-        data.email,
-        data.password,
-        data.firstName,
-        data.lastName
-      );
-      
-      if (error) {
+      // Use the new API route for registration with notifications
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
         toast({
           title: 'Registration failed',
-          description: error.message || 'Please check your information and try again.',
+          description: result.error || 'Please check your information and try again.',
           variant: 'destructive',
         });
         return;
       }
-      
+
       toast({
         title: 'Registration successful',
-        description: 'Your account has been created. Please log in.',
+        description: 'Your account has been created. Please check your email and log in.',
       });
-      
+
       router.push('/login');
     } catch (error) {
       toast({
@@ -108,7 +117,7 @@ export default function RegisterForm() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="lastName"
@@ -123,7 +132,7 @@ export default function RegisterForm() {
             )}
           />
         </div>
-        
+
         <FormField
           control={form.control}
           name="email"
@@ -137,7 +146,7 @@ export default function RegisterForm() {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="password"
@@ -146,10 +155,10 @@ export default function RegisterForm() {
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Input 
-                    type={showPassword ? 'text' : 'password'} 
-                    placeholder="••••••••" 
-                    {...field} 
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    {...field}
                   />
                   <Button
                     type="button"
@@ -173,7 +182,7 @@ export default function RegisterForm() {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="confirmPassword"
@@ -182,10 +191,10 @@ export default function RegisterForm() {
               <FormLabel>Confirm Password</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Input 
-                    type={showConfirmPassword ? 'text' : 'password'} 
-                    placeholder="••••••••" 
-                    {...field} 
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    {...field}
                   />
                   <Button
                     type="button"
@@ -209,7 +218,7 @@ export default function RegisterForm() {
             </FormItem>
           )}
         />
-        
+
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <>
@@ -219,7 +228,7 @@ export default function RegisterForm() {
             'Register'
           )}
         </Button>
-        
+
         <div className="text-center text-sm">
           Already have an account?{' '}
           <Link href="/login" className="text-primary hover:underline">
