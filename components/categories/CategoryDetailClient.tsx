@@ -1,16 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import ProductCard from '@/components/products/ProductCard';
-
-// Configure for static export
-export const dynamic = 'force-static';
 
 interface Category {
   id: string;
@@ -23,21 +20,17 @@ interface Category {
 interface Product {
   id: string;
   name: string;
-  slug: string;
-  description: string | null;
+  description: string;
   price: number;
-  image_url: string | null;
+  image_url: string;
   category_id: string;
+  inventory_count: number;
+  slug: string;
   featured: boolean;
-  stock: number;
 }
 
-export default function CategoryPage() {
-  const searchParams = useSearchParams();
+export default function CategoryDetailClient({ slug }: { slug: string }) {
   const router = useRouter();
-  
-  // Get the slug from the search params
-  const slug = searchParams.get('slug');
   
   const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -106,13 +99,17 @@ export default function CategoryPage() {
   }
 
   if (!category) {
+    // If category is not found, redirect to the categories page
+    useEffect(() => {
+      if (!loading) {
+        router.push('/categories');
+      }
+    }, [loading, router]);
+    
     return (
       <div className="container max-w-7xl mx-auto py-16 px-4 text-center">
-        <h1 className="text-3xl font-bold mb-4">Category Not Found</h1>
-        <p className="mb-8">The category you're looking for doesn't exist.</p>
-        <Button asChild>
-          <Link href="/categories">Browse Categories</Link>
-        </Button>
+        <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+        <p className="mt-2">Redirecting...</p>
       </div>
     );
   }

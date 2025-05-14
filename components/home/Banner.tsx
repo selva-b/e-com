@@ -12,7 +12,7 @@ const banners = [
     subtitle: "New Arrivals | Limited Time Offer",
     description: "Discover our newest summer collection with exclusive designs and premium quality.",
     buttonText: "Shop Now",
-    buttonLink: "/products?category=summer",
+    buttonLink: "/categories/summer",
     imageUrl: "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     alignment: "left",
     overlayColor: "from-black/70 to-transparent"
@@ -23,7 +23,7 @@ const banners = [
     subtitle: "Elegant & Durable | Free Shipping",
     description: "Elevate your style with our collection of premium accessories designed for modern living.",
     buttonText: "Explore",
-    buttonLink: "/products?category=accessories",
+    buttonLink: "/categories/accessories",
     imageUrl: "https://images.pexels.com/photos/934063/pexels-photo-934063.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     alignment: "right",
     overlayColor: "from-black/70 to-transparent"
@@ -34,7 +34,7 @@ const banners = [
     subtitle: "Transform Your Space | Exclusive Designs",
     description: "Enhance your living space with our curated selection of luxury home products.",
     buttonText: "Discover",
-    buttonLink: "/products?category=home",
+    buttonLink: "/categories/home",
     imageUrl: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     alignment: "center",
     overlayColor: "from-black/70 to-transparent"

@@ -2,124 +2,171 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ShoppingCart, Menu, X, Search, User, Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useCartContext } from '@/context/CartContext';
-import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ShoppingCart, User, Menu, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import SearchBar from '@/components/layout/SearchBar';
 
 export default function Navbar() {
-  const { user, isAdmin, logout } = useAuth();
-  const { cart } = useCartContext();
+  const { theme, setTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const { user, profile, signOut } = useAuth();
+  const { cartCount } = useCartContext();
+  const pathname = usePathname();
   
+  // Check if current page is an admin page
+  const isAdminPage = pathname?.startsWith('/admin');
+  
+  // Handle scroll event to change navbar appearance
   useEffect(() => {
-    setMounted(true);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  const cartItemCount = mounted ? cart.reduce((total, item) => total + item.quantity, 0) : 0;
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
+  
+  // Don't show the main navbar on admin pages
+  if (isAdminPage) {
+    return null;
+  }
   
   return (
-    <header className="bg-background border-b sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link href="/" className="text-xl font-bold">
-          E-com Store
-        </Link>
-        
-        {/* Mobile Menu Button */}
-        <button 
-          className="md:hidden"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-        >
-          {isMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-        </button>
-        
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <Link href="/products" className="hover:text-primary">
-            Products
-          </Link>
-          <Link href="/category" className="hover:text-primary">
-            Categories
+    <header 
+      className={cn(
+        "sticky top-0 z-50 w-full transition-all duration-200",
+        isScrolled 
+          ? "bg-background/80 backdrop-blur-md border-b shadow-sm" 
+          : "bg-background"
+      )}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="text-xl font-bold">
+            E-com
           </Link>
           
-          {isAdmin && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost">Admin</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Admin Panel</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/products">Products</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/categories">Categories</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/orders">Orders</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/customers">Customers</Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/products" className="hover:text-primary">
+              Products
+            </Link>
+            <Link href="/categories" className="hover:text-primary">
+              Categories
+            </Link>
+            <Link href="/featured" className="hover:text-primary">
+              Featured
+            </Link>
+            <Link href="/new-arrivals" className="hover:text-primary">
+              New Arrivals
+            </Link>
+          </nav>
           
-          <Link href="/cart" className="relative">
-            <ShoppingCart className="h-6 w-6" />
-            {cartItemCount > 0 && (
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                {cartItemCount}
-              </Badge>
-            )}
-          </Link>
-          
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/account">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/orders">Orders</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/wishlist">Wishlist</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button asChild variant="outline">
-              <Link href="/login">Login</Link>
+          {/* Search, Cart, Theme, User */}
+          <div className="flex items-center gap-4">
+            <SearchBar />
+            
+            {/* Theme Toggle */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="hidden md:flex"
+            >
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
             </Button>
-          )}
-        </nav>
+            
+            {/* Cart */}
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/cart" className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {cartCount}
+                  </Badge>
+                )}
+              </Link>
+            </Button>
+            
+            {/* User Menu */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url || ''} alt={profile?.first_name || 'User'} />
+                      <AvatarFallback>
+                        {profile?.first_name?.[0] || user.email?.[0] || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href="/account">My Account</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/orders">My Orders</Link>
+                  </DropdownMenuItem>
+                  {profile?.role === 'admin' && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/dashboard">Admin Dashboard</Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}>
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/login">Sign In</Link>
+              </Button>
+            )}
+            
+            {/* Mobile Menu Toggle */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden" 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+        </div>
         
         {/* Mobile Navigation */}
         {isMenuOpen && (
@@ -133,103 +180,47 @@ export default function Navbar() {
                 Products
               </Link>
               <Link 
-                href="/category" 
+                href="/categories" 
                 className="py-2 hover:text-primary"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Categories
               </Link>
+              <Link 
+                href="/featured" 
+                className="py-2 hover:text-primary"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Featured
+              </Link>
+              <Link 
+                href="/new-arrivals" 
+                className="py-2 hover:text-primary"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                New Arrivals
+              </Link>
               
-              {isAdmin && (
-                <>
-                  <div className="font-semibold py-2">Admin Panel</div>
-                  <Link 
-                    href="/admin/products" 
-                    className="py-2 pl-4 hover:text-primary"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Products
-                  </Link>
-                  <Link 
-                    href="/admin/categories" 
-                    className="py-2 pl-4 hover:text-primary"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Categories
-                  </Link>
-                  <Link 
-                    href="/admin/orders" 
-                    className="py-2 pl-4 hover:text-primary"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Orders
-                  </Link>
-                  <Link 
-                    href="/admin/customers" 
-                    className="py-2 pl-4 hover:text-primary"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Customers
-                  </Link>
-                </>
-              )}
-              
-              <div className="border-t my-2"></div>
-              
-              {user ? (
-                <>
-                  <div className="font-semibold py-2">My Account</div>
-                  <Link 
-                    href="/account" 
-                    className="py-2 pl-4 hover:text-primary"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Profile
-                  </Link>
-                  <Link 
-                    href="/orders" 
-                    className="py-2 pl-4 hover:text-primary"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Orders
-                  </Link>
-                  <Link 
-                    href="/wishlist" 
-                    className="py-2 pl-4 hover:text-primary"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Wishlist
-                  </Link>
-                  <Link 
-                    href="/cart" 
-                    className="py-2 pl-4 hover:text-primary flex items-center"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Cart
-                    {cartItemCount > 0 && (
-                      <Badge className="ml-2">{cartItemCount}</Badge>
-                    )}
-                  </Link>
-                  <button 
-                    className="py-2 text-left text-red-500 hover:text-red-700"
-                    onClick={() => {
-                      logout();
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <Button asChild className="mt-2">
-                  <Link 
-                    href="/login"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Login
-                  </Link>
+              <div className="py-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="w-full justify-start"
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="h-4 w-4 mr-2" />
+                      Light Mode
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="h-4 w-4 mr-2" />
+                      Dark Mode
+                    </>
+                  )}
                 </Button>
-              )}
+              </div>
             </nav>
           </div>
         )}

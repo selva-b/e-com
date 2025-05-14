@@ -89,6 +89,7 @@ export default function ProductPage() {
       name: product.name,
       price: product.price,
       image_url: product.image_url,
+      inventory_count: product.stock,
       quantity,
     });
     
@@ -160,7 +161,7 @@ export default function ProductPage() {
           
           <div className="flex items-center gap-2 mb-4">
             <Link 
-              href={`/category?slug=${product.categories.slug}`}
+              href={`/categories/${product.categories.slug}`}
               className="text-sm text-muted-foreground hover:text-primary"
             >
               {product.categories.name}

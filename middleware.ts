@@ -10,9 +10,19 @@ export function middleware(request: NextRequest) {
     // Extract the slug from the URL
     const slug = pathname.replace('/category/', '');
     
-    // Redirect to the query parameter format
-    url.pathname = '/category';
-    url.searchParams.set('slug', slug);
+    // Redirect to the new categories format
+    url.pathname = `/categories/${slug}`;
+    
+    return NextResponse.redirect(url);
+  }
+  
+  // Handle /category?slug=xyz URLs
+  if (pathname === '/category' && url.searchParams.has('slug')) {
+    const slug = url.searchParams.get('slug');
+    
+    // Redirect to the new categories format
+    url.pathname = `/categories/${slug}`;
+    url.searchParams.delete('slug');
     
     return NextResponse.redirect(url);
   }
@@ -22,5 +32,5 @@ export function middleware(request: NextRequest) {
 
 // Configure the middleware to only run on specific paths
 export const config = {
-  matcher: ['/category/:path*'],
+  matcher: ['/category/:path*', '/category'],
 };

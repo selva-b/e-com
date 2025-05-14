@@ -92,7 +92,7 @@ export default function CategoryGrid() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {categories.map((category) => (
         <Link
-          href={`/category?slug=${category.slug}`}
+          href={`/categories/${category.slug}`}
           key={category.id}
           className="group overflow-hidden rounded-lg relative h-64"
         >
