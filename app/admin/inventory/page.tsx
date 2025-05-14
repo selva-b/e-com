@@ -184,7 +184,7 @@ export default function InventoryPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const newCount = parseInt(prompt('Enter new stock level:', product.inventory_count.toString()) || '0');
+                      const newCount = parseInt(prompt('Enter new stock level:', product.inventory_count) || '0');
                       if (newCount >= 0) {
                         updateInventory(product.id, newCount);
                       }

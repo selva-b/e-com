@@ -69,8 +69,9 @@ export default function CategoriesPage() {
   });
 
   useEffect(() => {
+    if (!isLoading) {
+      if (!user || !isAdmin) {
         redirect('/login');
-        redirect('/');
       }
     }
   }, [user, isAdmin, isLoading]);

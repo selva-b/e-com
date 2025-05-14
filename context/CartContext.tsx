@@ -11,7 +11,11 @@ type CartContextType = {
   updateQuantity: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
+  removeSelectedItems: (itemIds: string[]) => void;
   isLoading: boolean;
+  checkInventory: () => Promise<void>;
+  hasOutOfStockItems: boolean;
+  isInventoryChecked: boolean;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);

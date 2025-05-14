@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { redirect } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import {
   Table,
@@ -34,7 +34,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -42,6 +42,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import Link from 'next/link';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -79,10 +91,12 @@ interface Category {
 
 export default function ProductsPage() {
   const { user, isAdmin, isLoading } = useAuth();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<ProductFormValues>({
@@ -111,6 +125,7 @@ export default function ProductsPage() {
 
   async function fetchProducts() {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select('*, categories(name)');
@@ -123,6 +138,8 @@ export default function ProductsPage() {
         description: error.message || 'Failed to fetch products',
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -154,42 +171,21 @@ export default function ProductsPage() {
         inventory_count: parseInt(data.inventory_count),
         category_id: data.category_id,
         featured: data.featured,
+        slug: data.name.toLowerCase().replace(/\s+/g, '-'),
       };
 
-      if (isEditing && selectedProduct) {
-        const { error } = await supabase
-          .from('products')
-          .update({
-            ...productData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', selectedProduct.id);
+      const { error } = await supabase
+        .from('products')
+        .insert([productData]);
 
-        if (error) throw error;
+      if (error) throw error;
 
-        toast({
-          title: 'Product updated',
-          description: 'The product has been updated successfully.',
-        });
-      } else {
-        const { error } = await supabase
-          .from('products')
-          .insert([{
-            ...productData,
-            slug: data.name.toLowerCase().replace(/\s+/g, '-'),
-          }]);
-
-        if (error) throw error;
-
-        toast({
-          title: 'Product created',
-          description: 'The product has been created successfully.',
-        });
-      }
+      toast({
+        title: 'Product created',
+        description: 'The product has been created successfully.',
+      });
 
       form.reset();
-      setIsEditing(false);
-      setSelectedProduct(null);
       fetchProducts();
     } catch (error: any) {
       toast({
@@ -221,25 +217,23 @@ export default function ProductsPage() {
         description: error.message || 'Failed to delete product',
         variant: 'destructive',
       });
+    } finally {
+      setProductToDelete(null);
     }
   }
 
   function handleEdit(product: Product) {
-    setIsEditing(true);
-    setSelectedProduct(product);
-
-    // Reset form with product values
-    form.setValue('name', product.name);
-    form.setValue('description', product.description);
-    form.setValue('price', product.price.toString());
-    form.setValue('image_url', product.image_url);
-    form.setValue('inventory_count', product.inventory_count.toString());
-    form.setValue('category_id', product.category_id);
-    form.setValue('featured', product.featured);
+    // Navigate to the edit page with the product ID
+    router.push(`/admin/products/edit?id=${product.id}`);
   }
 
-  if (isLoading) {
-    return <div>Loading...</div>;
+  if (isLoading || loading) {
+    return (
+      <div className="p-6 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+        <p className="mt-2">Loading products...</p>
+      </div>
+    );
   }
 
   return (
@@ -253,11 +247,9 @@ export default function ProductsPage() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>
-                {isEditing ? 'Edit Product' : 'Add New Product'}
-              </DialogTitle>
+              <DialogTitle>Add New Product</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -289,19 +281,35 @@ export default function ProductsPage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="inventory_count"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Inventory Count</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -311,20 +319,6 @@ export default function ProductsPage() {
                       <FormLabel>Image URL</FormLabel>
                       <FormControl>
                         <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="inventory_count"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Inventory Count</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -382,8 +376,8 @@ export default function ProductsPage() {
                   )}
                 />
 
-                <Button type="submit">
-                  {isEditing ? 'Update Product' : 'Create Product'}
+                <Button type="submit" className="w-full">
+                  Create Product
                 </Button>
               </form>
             </Form>
@@ -404,40 +398,69 @@ export default function ProductsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                </TableCell>
-                <TableCell>{product.name}</TableCell>
-                <TableCell>{product.categories?.name}</TableCell>
-                <TableCell>${product.price.toFixed(2)}</TableCell>
-                <TableCell>{product.inventory_count}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleEdit(product)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="text-destructive"
-                      onClick={() => handleDelete(product.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {products.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  No products found. Add your first product to get started.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              products.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell>
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>{product.categories?.name}</TableCell>
+                  <TableCell>${product.price.toFixed(2)}</TableCell>
+                  <TableCell>{product.inventory_count}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEdit(product)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the product
+                              "{product.name}" and remove it from our servers.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDelete(product.id)}
+                              className="bg-destructive text-destructive-foreground"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

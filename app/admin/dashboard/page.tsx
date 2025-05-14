@@ -35,49 +35,55 @@ export default function AdminDashboard() {
 
   // Redirect if not admin
   useEffect(() => {
-  const fetchData = async () => {
-    // Fetch data asynchronously
-    const { data: salesData } = await supabase.from('orders').select('total_amount').single();
-    const totalSales = salesData ? salesData.total_amount : 0;
+    if (!isLoading && (!user || !isAdmin)) {
+      redirect('/login');
+    }
+  }, [user, isAdmin, isLoading]);
 
-    const { count: totalProducts } = await supabase
-      .from('products')
-      .select('*', { count: 'exact', head: true });
+  useEffect(() => {
+    const fetchData = async () => {
+      // Fetch data asynchronously
+      const { data: salesData } = await supabase.from('orders').select('total_amount').single();
+      const totalSales = salesData ? salesData.total_amount : 0;
 
-    const { count: totalCustomers } = await supabase
-      .from('customers')
-      .select('*', { count: 'exact', head: true });
+      const { count: totalProducts } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
 
-    const { count: totalCategories } = await supabase
-      .from('categories')
-      .select('*', { count: 'exact', head: true });
-    const { count: totalOrders } = await supabase
-      .from('orders')
-      .select('*', { count: 'exact', head: true });
+      const { count: totalCustomers } = await supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true });
 
-    // Update the stats state
-    setStats({
-      totalSales,
-      totalOrders, // Replace with actual order count if available
-      totalCustomers,
-      totalProducts,
-      totalCategories,
-    });
+      const { count: totalCategories } = await supabase
+        .from('categories')
+        .select('*', { count: 'exact', head: true });
+      const { count: totalOrders } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true });
 
-    // Simulated sales data
-    setOrdersData([
-      { name: 'Jan', sales: 4000 },
-      { name: 'Feb', sales: 3000 },
-      { name: 'Mar', sales: 5000 },
-      { name: 'Apr', sales: 2780 },
-      { name: 'May', sales: 1890 },
-      { name: 'Jun', sales: 2390 },
-      { name: 'Jul', sales: 3490 },
-    ]);
-  };
+      // Update the stats state
+      setStats({
+        totalSales,
+        totalOrders, // Replace with actual order count if available
+        totalCustomers,
+        totalProducts,
+        totalCategories,
+      });
 
-  fetchData();
-}, []); // Empty dependency array to run only once
+      // Simulated sales data
+      setOrdersData([
+        { name: 'Jan', sales: 4000 },
+        { name: 'Feb', sales: 3000 },
+        { name: 'Mar', sales: 5000 },
+        { name: 'Apr', sales: 2780 },
+        { name: 'May', sales: 1890 },
+        { name: 'Jun', sales: 2390 },
+        { name: 'Jul', sales: 3490 },
+      ]);
+    };
+
+    fetchData();
+  }, []); // Empty dependency array to run only once
 
   // Category distribution data
   const categoryData = [
