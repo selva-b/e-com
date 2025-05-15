@@ -33,15 +33,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      handleSession(session);
-      setIsLoading(false);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await handleSession(session);
+      } catch (error) {
+        console.error('Error getting session:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     getSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      // Don't set loading to true on auth state change to avoid unnecessary redirects
+      await handleSession(session);
     });
 
     return () => subscription.unsubscribe();
@@ -122,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signOut() {
     await supabase.auth.signOut();
-    router.refresh();
+    // Don't refresh the page, just navigate to home
     router.push('/');
   }
 

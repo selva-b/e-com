@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { redirect } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,6 +26,7 @@ import {
   Cell,
 } from 'recharts';
 import { Package, ShoppingCart, Users, DollarSign, Zap, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface OrderData {
   name: string;
@@ -35,6 +36,7 @@ interface OrderData {
 export default function AdminDashboard() {
   const { user, isAdmin, isLoading } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const [stats, setStats] = useState({
     totalSales: 0,
     totalOrders: 0,
@@ -45,9 +47,11 @@ export default function AdminDashboard() {
   const [ordersData, setOrdersData] = useState<OrderData[]>([]);
   const [flashSaleEnabled, setFlashSaleEnabled] = useState(false);
   const [toggleLoading, setToggleLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
 
-  // Redirect if not admin
+  // Only redirect if auth is complete and user is not admin
   useEffect(() => {
+    // Only redirect when auth loading is complete and user is not authenticated or not admin
     if (!isLoading && (!user || !isAdmin)) {
       redirect('/login');
     }
@@ -98,44 +102,56 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch data asynchronously
-      const { data: salesData } = await supabase.from('orders').select('total_amount').single();
-      const totalSales = salesData ? salesData.total_amount : 0;
+      try {
+        setDataLoading(true);
+        // Fetch data asynchronously
+        const { data: salesData } = await supabase.from('orders').select('total_amount').single();
+        const totalSales = salesData ? salesData.total_amount : 0;
 
-      const { count: totalProducts } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true });
+        const { count: totalProducts } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true });
 
-      const { count: totalCustomers } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact', head: true });
+        const { count: totalCustomers } = await supabase
+          .from('customers')
+          .select('*', { count: 'exact', head: true });
 
-      const { count: totalCategories } = await supabase
-        .from('categories')
-        .select('*', { count: 'exact', head: true });
-      const { count: totalOrders } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true });
+        const { count: totalCategories } = await supabase
+          .from('categories')
+          .select('*', { count: 'exact', head: true });
+        const { count: totalOrders } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true });
 
-      // Update the stats state
-      setStats({
-        totalSales: totalSales || 0,
-        totalOrders: totalOrders || 0,
-        totalCustomers: totalCustomers || 0,
-        totalProducts: totalProducts || 0,
-        totalCategories: totalCategories || 0,
-      });
+        // Update the stats state
+        setStats({
+          totalSales: totalSales || 0,
+          totalOrders: totalOrders || 0,
+          totalCustomers: totalCustomers || 0,
+          totalProducts: totalProducts || 0,
+          totalCategories: totalCategories || 0,
+        });
 
-      // Simulated sales data
-      setOrdersData([
-        { name: 'Jan', sales: 4000 },
-        { name: 'Feb', sales: 3000 },
-        { name: 'Mar', sales: 5000 },
-        { name: 'Apr', sales: 2780 },
-        { name: 'May', sales: 1890 },
-        { name: 'Jun', sales: 2390 },
-        { name: 'Jul', sales: 3490 },
-      ]);
+        // Simulated sales data
+        setOrdersData([
+          { name: 'Jan', sales: 4000 },
+          { name: 'Feb', sales: 3000 },
+          { name: 'Mar', sales: 5000 },
+          { name: 'Apr', sales: 2780 },
+          { name: 'May', sales: 1890 },
+          { name: 'Jun', sales: 2390 },
+          { name: 'Jul', sales: 3490 },
+        ]);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load dashboard data. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setDataLoading(false);
+      }
     };
 
     fetchData();
@@ -153,7 +169,11 @@ export default function AdminDashboard() {
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return <LoadingSpinner fullScreen text="Loading authentication..." />;
+  }
+
+  if (dataLoading) {
+    return <LoadingSpinner fullScreen text="Loading dashboard data..." />;
   }
 
   return (
@@ -215,7 +235,7 @@ export default function AdminDashboard() {
  {/* Quick Actions */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Flash Sale Section</CardTitle>
@@ -229,11 +249,18 @@ export default function AdminDashboard() {
                   <Zap className={`h-5 w-5 ${flashSaleEnabled ? 'text-red-500' : 'text-muted-foreground'}`} />
                   <span>{flashSaleEnabled ? 'Enabled' : 'Disabled'}</span>
                 </div>
-                <Switch
-                  checked={flashSaleEnabled}
-                  onCheckedChange={toggleFlashSale}
-                  disabled={toggleLoading}
-                />
+                {toggleLoading ? (
+                  <div className="flex items-center">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span className="text-sm">Updating...</span>
+                  </div>
+                ) : (
+                  <Switch
+                    checked={flashSaleEnabled}
+                    onCheckedChange={toggleFlashSale}
+                    disabled={toggleLoading}
+                  />
+                )}
               </div>
             </CardContent>
             <CardFooter>
@@ -241,7 +268,7 @@ export default function AdminDashboard() {
                 variant="outline"
                 size="sm"
                 className="w-full"
-                onClick={() => window.location.href = '/admin/flash-sale-settings'}
+                onClick={() => router.push('/admin/flash-sale-settings')}
               >
                 Manage Flash Sale Settings
               </Button>
