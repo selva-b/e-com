@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Bell,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -64,6 +65,11 @@ const adminRoutes = [
     label: 'Templates',
     icon: Bell,
     href: '/admin/templates',
+  },
+  {
+    label: 'Currency',
+    icon: CreditCard,
+    href: '/admin/currency',
   },
   {
     label: 'Settings',

@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { NotificationProvider } from '@/context/NotificationContext';
+import { CurrencyProvider } from '@/context/CurrencyContext';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/Header';
@@ -32,14 +33,16 @@ export default function RootLayout({
         >
           <AuthProvider>
             <CartProvider>
-              <NotificationProvider>
-                <div className="flex min-h-screen flex-col">
-                  <Header />
-                  <main className="flex-1">{children}</main>
-                  <Footer />
-                </div>
-                <Toaster />
-              </NotificationProvider>
+              <CurrencyProvider>
+                <NotificationProvider>
+                  <div className="flex min-h-screen flex-col">
+                    <Header />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+                  <Toaster />
+                </NotificationProvider>
+              </CurrencyProvider>
             </CartProvider>
           </AuthProvider>
         </ThemeProvider>

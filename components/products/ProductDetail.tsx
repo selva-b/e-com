@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Currency } from '@/components/ui/currency';
 import WishlistButton from './WishlistButton';
 
 interface Product {
@@ -172,17 +173,19 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             {product.discount_percent && product.discount_percent > 0 ? (
               <>
                 <p className="text-2xl font-semibold text-green-600">
-                  ${(product.price * (1 - (product.discount_percent / 100))).toFixed(2)}
+                  <Currency value={product.price * (1 - (product.discount_percent / 100))} />
                 </p>
                 <p className="text-xl text-muted-foreground line-through">
-                  ${product.price.toFixed(2)}
+                  <Currency value={product.price} />
                 </p>
                 <Badge className="bg-green-500 ml-2">
                   {product.discount_percent}% OFF
                 </Badge>
               </>
             ) : (
-              <p className="text-2xl font-semibold">${product.price.toFixed(2)}</p>
+              <p className="text-2xl font-semibold">
+                <Currency value={product.price} />
+              </p>
             )}
           </div>
 

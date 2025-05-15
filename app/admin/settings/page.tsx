@@ -63,7 +63,7 @@ type NotificationSettingsValues = z.infer<typeof notificationSettingsSchema>;
 export default function SettingsPage() {
   const { user, isAdmin, isLoading } = useAuth();
   const { toast } = useToast();
-  
+
   const storeForm = useForm<StoreSettingsValues>({
     resolver: zodResolver(storeSettingsSchema),
     defaultValues: {
@@ -78,7 +78,7 @@ export default function SettingsPage() {
       minOrderAmount: '50',
     },
   });
-  
+
   const notificationForm = useForm<NotificationSettingsValues>({
     resolver: zodResolver(notificationSettingsSchema),
     defaultValues: {
@@ -88,13 +88,13 @@ export default function SettingsPage() {
       marketingEmails: false,
     },
   });
-  
+
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
       redirect('/login');
     }
   }, [user, isAdmin, isLoading]);
-  
+
   async function onStoreSubmit(data: StoreSettingsValues) {
     try {
       // In a real app, you would save these settings to your database
@@ -110,7 +110,7 @@ export default function SettingsPage() {
       });
     }
   }
-  
+
   async function onNotificationSubmit(data: NotificationSettingsValues) {
     try {
       // In a real app, you would save these settings to your database
@@ -126,17 +126,17 @@ export default function SettingsPage() {
       });
     }
   }
-  
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
-  
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Settings</h1>
       </div>
-      
+
       <div className="grid gap-6">
         <Card>
           <CardHeader>
@@ -164,7 +164,7 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={storeForm.control}
                   name="storeDescription"
@@ -178,7 +178,7 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={storeForm.control}
@@ -193,7 +193,7 @@ export default function SettingsPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={storeForm.control}
                     name="supportPhone"
@@ -208,7 +208,7 @@ export default function SettingsPage() {
                     )}
                   />
                 </div>
-                
+
                 <FormField
                   control={storeForm.control}
                   name="address"
@@ -222,22 +222,37 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={storeForm.control}
                     name="currency"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Currency</FormLabel>
+                        <FormLabel>Currency Code</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <select
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            {...field}
+                          >
+                            <option value="USD">USD - US Dollar ($)</option>
+                            <option value="EUR">EUR - Euro (€)</option>
+                            <option value="GBP">GBP - British Pound (£)</option>
+                            <option value="INR">INR - Indian Rupee (₹)</option>
+                            <option value="JPY">JPY - Japanese Yen (¥)</option>
+                            <option value="CNY">CNY - Chinese Yuan (¥)</option>
+                            <option value="AUD">AUD - Australian Dollar (A$)</option>
+                            <option value="CAD">CAD - Canadian Dollar (C$)</option>
+                          </select>
                         </FormControl>
+                        <FormDescription>
+                          Select the currency code for your store
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={storeForm.control}
                     name="taxRate"
@@ -252,7 +267,7 @@ export default function SettingsPage() {
                     )}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={storeForm.control}
@@ -267,7 +282,7 @@ export default function SettingsPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={storeForm.control}
                     name="minOrderAmount"
@@ -282,13 +297,13 @@ export default function SettingsPage() {
                     )}
                   />
                 </div>
-                
+
                 <Button type="submit">Save Store Settings</Button>
               </form>
             </Form>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -322,7 +337,7 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={notificationForm.control}
                   name="stockAlerts"
@@ -343,7 +358,7 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={notificationForm.control}
                   name="customerSignups"
@@ -364,7 +379,7 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={notificationForm.control}
                   name="marketingEmails"
@@ -385,7 +400,7 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <Button type="submit">Save Notification Settings</Button>
               </form>
             </Form>

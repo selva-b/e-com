@@ -142,7 +142,7 @@ export default function CouponInput({
             Coupon applied: <span className="font-bold">{appliedCoupon.code}</span>
           </p>
           <p className="text-sm text-green-600">
-            Discount: ${appliedCoupon.discountAmount.toFixed(2)}
+            Discount: {appliedCoupon.discountAmount.toFixed(2)}
           </p>
         </div>
         <Button

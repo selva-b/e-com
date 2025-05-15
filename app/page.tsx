@@ -11,27 +11,27 @@ export default async function Home() {
     <div className="flex flex-col min-h-screen">
       {/* Hero Banner */}
       <Banner />
-      
+
       {/* Features Section */}
       <section className="py-12 bg-accent/20">
         <div className="container px-4 mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <FeatureCard 
+            <FeatureCard
               icon={<Truck className="h-6 w-6" />}
               title="Free Shipping"
               description="Free shipping on all orders over $50"
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Shield className="h-6 w-6" />}
               title="Secure Payment"
               description="100% secure payment methods"
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Clock className="h-6 w-6" />}
               title="24/7 Support"
               description="Dedicated support team available"
             />
-            <FeatureCard 
+            <FeatureCard
               icon={<Award className="h-6 w-6" />}
               title="Quality Guarantee"
               description="100% satisfaction guaranteed"
@@ -39,7 +39,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
-      
+
       {/* Featured Products */}
       <section className="py-16">
         <div className="container px-4 mx-auto">
@@ -54,7 +54,7 @@ export default async function Home() {
           <ProductSlider type="featured" />
         </div>
       </section>
-      
+
       {/* Categories */}
       <section className="py-16 bg-muted/30">
         <div className="container px-4 mx-auto">
@@ -67,7 +67,7 @@ export default async function Home() {
           <CategoryGrid />
         </div>
       </section>
-      
+
       {/* New Arrivals */}
       <section className="py-16">
         <div className="container px-4 mx-auto">
@@ -82,25 +82,28 @@ export default async function Home() {
           <ProductSlider type="newest" />
         </div>
       </section>
-      
+
       {/* Call to Action */}
-      <section className="py-16 bg-primary text-white">
+      <section className="py-16 bg-primary text-white dark:bg-gray-800 dark:text-gray-100">
         <div className="container px-4 mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Join Our Newsletter</h2>
           <p className="mb-8 max-w-2xl mx-auto">
-            Subscribe to our newsletter and be the first to know about new products, 
+            Subscribe to our newsletter and be the first to know about new products,
             special offers, and exclusive deals.
           </p>
           <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
             <input
               type="email"
               placeholder="Your email address"
-              className="flex-1 px-4 py-2 rounded-md text-foreground"
+              className="flex-1 px-4 py-2 rounded-md text-foreground bg-white dark:bg-gray-700 dark:text-white"
             />
-            <Button>Subscribe</Button>
+            <Button className="bg-blue-500 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-900">
+              Subscribe
+            </Button>
           </div>
         </div>
       </section>
+
     </div>
   );
 }

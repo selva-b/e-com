@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Currency } from '@/components/ui/currency';
 import WishlistButton from './WishlistButton';
 
 interface Product {
@@ -157,14 +158,16 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.discount_percent && product.discount_percent > 0 ? (
               <>
                 <p className="font-bold text-lg text-green-600">
-                  ${(product.price * (1 - (product.discount_percent / 100))).toFixed(2)}
+                  <Currency value={product.price * (1 - (product.discount_percent / 100))} />
                 </p>
                 <p className="text-sm text-muted-foreground line-through">
-                  ${product.price.toFixed(2)}
+                  <Currency value={product.price} />
                 </p>
               </>
             ) : (
-              <p className="font-bold text-lg">${product.price.toFixed(2)}</p>
+              <p className="font-bold text-lg">
+                <Currency value={product.price} />
+              </p>
             )}
           </div>
         </CardContent>

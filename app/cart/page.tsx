@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Currency } from '@/components/ui/currency';
 import CouponInput from '@/components/cart/CouponInput';
 
 export default function CartPage() {
@@ -201,9 +202,13 @@ export default function CartPage() {
                         </Badge>
                       )}
                     </div>
-                    <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-semibold">
+                      <Currency value={item.price * item.quantity} />
+                    </p>
                   </div>
-                  <p className="text-muted-foreground">${item.price.toFixed(2)} each</p>
+                  <p className="text-muted-foreground">
+                    <Currency value={item.price} /> each
+                  </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -260,7 +265,7 @@ export default function CartPage() {
                 <h4 className="font-medium text-green-800 dark:text-green-400">Selected Items</h4>
                 <p className="text-sm text-green-700 dark:text-green-500">
                   You have selected {selectedItems.length} item(s) for checkout.
-                  Total: ${selectedItemsTotal.toFixed(2)}
+                  Total: <Currency value={selectedItemsTotal} />
                 </p>
               </div>
             </div>
@@ -286,14 +291,16 @@ export default function CartPage() {
           <div>
             <p className="text-muted-foreground">Subtotal ({selectedItems.length} of {cart.length} items)</p>
             <p className="text-2xl font-bold">
-              ${selectedItems.length > 0 ? selectedItemsTotal.toFixed(2) : '0.00'}
+              {selectedItems.length > 0 ? <Currency value={selectedItemsTotal} /> : <Currency value={0} />}
             </p>
 
             {appliedCoupon && selectedItems.length > 0 && (
               <>
-                <p className="text-sm text-muted-foreground mt-1">Discount: -${appliedCoupon.discountAmount.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Discount: -<Currency value={appliedCoupon.discountAmount} />
+                </p>
                 <p className="text-lg font-semibold text-green-600 mt-1">
-                  Final Total: ${(selectedItemsTotal - appliedCoupon.discountAmount).toFixed(2)}
+                  Final Total: <Currency value={selectedItemsTotal - appliedCoupon.discountAmount} />
                 </p>
               </>
             )}
