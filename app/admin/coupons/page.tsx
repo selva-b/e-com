@@ -368,6 +368,7 @@ export default function CouponsPage() {
                           min="0"
                           step={form.watch('discount_type') === 'percentage' ? '1' : '0.01'}
                           {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
                         />
                       </FormControl>
                       <FormDescription>
@@ -392,6 +393,7 @@ export default function CouponsPage() {
                           min="0"
                           step="0.01"
                           {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
                         />
                       </FormControl>
                       <FormDescription>
@@ -433,6 +435,7 @@ export default function CouponsPage() {
                           type="number"
                           min="0"
                           {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
                         />
                       </FormControl>
                       <FormDescription>

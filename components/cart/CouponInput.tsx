@@ -54,7 +54,23 @@ export default function CouponInput({
 
       if (error) throw error;
 
-      if (!data || !data.coupon_id) {
+      console.log('Coupon validation response:', data);
+
+      // Check if the response is an array (which happens with the updated function)
+      const couponResponse = Array.isArray(data) ? data[0] : data;
+
+      // Check if the coupon has a status field and it's an error
+      if (couponResponse?.status === 'error') {
+        toast({
+          title: 'Coupon Error',
+          description: couponResponse.message || 'The coupon code is invalid or has expired',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Check if the coupon was successfully applied
+      if (!couponResponse || !couponResponse.coupon_id) {
         toast({
           title: 'Invalid Coupon',
           description: 'The coupon code is invalid or has expired',
@@ -63,27 +79,37 @@ export default function CouponInput({
         return;
       }
 
+      // Check if the discount amount is greater than 0
+      if (couponResponse.discount_amount <= 0) {
+        toast({
+          title: 'Coupon Not Applied',
+          description: 'This coupon cannot be applied to your order',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // Get coupon details
-      const { data: couponData, error: couponError } = await supabase
+      const { data: couponDetails, error: couponError } = await supabase
         .from('coupons')
         .select('code, discount_type, discount_value')
-        .eq('id', data.coupon_id)
+        .eq('id', couponResponse.coupon_id)
         .single();
 
       if (couponError) throw couponError;
 
       // Apply the coupon
       onApplyCoupon({
-        code: couponData.code,
-        discountType: couponData.discount_type,
-        discountValue: couponData.discount_value,
-        discountAmount: data.discount_amount,
-        couponId: data.coupon_id
+        code: couponDetails.code,
+        discountType: couponDetails.discount_type,
+        discountValue: couponDetails.discount_value,
+        discountAmount: couponResponse.discount_amount,
+        couponId: couponResponse.coupon_id
       });
 
       toast({
         title: 'Coupon Applied',
-        description: `Discount of $${data.discount_amount.toFixed(2)} applied to your order`,
+        description: `Discount of $${couponResponse.discount_amount.toFixed(2)} applied to your order`,
       });
 
       // Clear the input
