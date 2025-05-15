@@ -1,19 +1,8 @@
-import nodemailer from 'nodemailer';
 import { supabase } from '@/lib/supabase/client';
-
-// Create a transporter using environment variables
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT || '587'),
-  secure: process.env.EMAIL_SECURE === 'true',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Email template types
-export type EmailTemplateType = 'order_placed' | 'registration' | 'order_status' | 'password_reset' | 'custom';
+export type EmailTemplateType = 'order_placed' | 'registration' | 'order_status' | 'password_reset' | 'custom' | 'customer_signups';
 
 // Interface for email data
 export interface EmailData {
@@ -21,12 +10,16 @@ export interface EmailData {
   subject: string;
   templateType: EmailTemplateType;
   variables: Record<string, string | number>;
+  supabaseClient?: SupabaseClient; // Optional Supabase client for server-side operations
 }
 
 // Function to get email template from database
-export const getEmailTemplate = async (templateType: EmailTemplateType) => {
+export const getEmailTemplate = async (templateType: EmailTemplateType, client?: SupabaseClient) => {
   try {
-    const { data, error } = await supabase
+    // Use provided client or fallback to default client
+    const db = client || supabase;
+
+    const { data, error } = await db
       .from('email_templates')
       .select('*')
       .eq('type', templateType)
@@ -44,65 +37,36 @@ export const getEmailTemplate = async (templateType: EmailTemplateType) => {
 // Function to replace variables in template
 export const replaceTemplateVariables = (template: string, variables: Record<string, string | number>) => {
   let result = template;
-  
+
   for (const [key, value] of Object.entries(variables)) {
     const regex = new RegExp(`{{${key}}}`, 'g');
     result = result.replace(regex, String(value));
   }
-  
+
   return result;
 };
 
 // Send email function
 export const sendEmail = async (emailData: EmailData) => {
   try {
-    // Get template from database
-    const template = await getEmailTemplate(emailData.templateType);
-    
-    if (!template) {
-      throw new Error(`Email template not found for type: ${emailData.templateType}`);
-    }
-    
-    // Replace variables in subject and body
-    const subject = replaceTemplateVariables(template.subject, emailData.variables);
-    const html = replaceTemplateVariables(template.body, emailData.variables);
-    
-    // Send email
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || '"E-com Store" <noreply@e-com.com>',
-      to: emailData.to,
-      subject,
-      html,
-    });
-    
-    console.log('Email sent:', info.messageId);
-    
-    // Log email in database
-    await supabase.from('email_logs').insert([
-      {
-        recipient: emailData.to,
-        subject,
-        template_type: emailData.templateType,
-        status: 'sent',
-        message_id: info.messageId,
+    // Use the API route to send emails
+    const response = await fetch('/api/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-    ]);
-    
-    return { success: true, messageId: info.messageId };
+      body: JSON.stringify(emailData),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to send email');
+    }
+
+    return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error('Error sending email:', error);
-    
-    // Log failed email attempt
-    await supabase.from('email_logs').insert([
-      {
-        recipient: emailData.to,
-        subject: emailData.subject,
-        template_type: emailData.templateType,
-        status: 'failed',
-        error_message: error.message,
-      },
-    ]);
-    
     return { success: false, error };
   }
 };

@@ -10,15 +10,17 @@ import { requestNotificationPermission } from '@/lib/firebase/firebaseConfig';
 
 export default function FirebasePushSubscriber() {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const toast = useToast();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
+  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
 
   useEffect(() => {
     // Check if push notifications are supported
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setPushSupported(true);
+      setIsFirebaseConfigured(true);
       if (user) {
         checkSubscriptionStatus();
       }
@@ -74,13 +76,13 @@ export default function FirebasePushSubscriber() {
       if (error) throw error;
 
       setIsSubscribed(true);
-      toast({
+      toast.toast({
         title: 'Notifications Enabled',
         description: 'You will now receive push notifications for important updates.',
       });
     } catch (error: any) {
       console.error('Error subscribing to push notifications:', error);
-      toast({
+      toast.toast({
         title: 'Subscription Failed',
         description: error.message || 'Failed to enable push notifications. Please try again.',
         variant: 'destructive',
@@ -105,13 +107,13 @@ export default function FirebasePushSubscriber() {
       if (error) throw error;
 
       setIsSubscribed(false);
-      toast({
+      toast.toast({
         title: 'Notifications Disabled',
         description: 'You will no longer receive push notifications.',
       });
     } catch (error: any) {
       console.error('Error unsubscribing from push notifications:', error);
-      toast({
+      toast.toast({
         title: 'Unsubscribe Failed',
         description: error.message || 'Failed to disable push notifications. Please try again.',
         variant: 'destructive',
@@ -121,8 +123,8 @@ export default function FirebasePushSubscriber() {
     }
   }
 
-  if (!pushSupported) {
-    return null; // Don't show anything if push is not supported
+  if (!pushSupported || !isFirebaseConfigured) {
+    return null; // Don't show anything if push is not supported or Firebase is not configured
   }
 
   return (

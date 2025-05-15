@@ -31,11 +31,11 @@ interface Product {
 
 export default function CategoryDetailClient({ slug }: { slug: string }) {
   const router = useRouter();
-  
+
   const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const toast = useToast();
 
   useEffect(() => {
     if (slug) {
@@ -50,14 +50,14 @@ export default function CategoryDetailClient({ slug }: { slug: string }) {
   async function fetchCategoryAndProducts(categorySlug: string) {
     try {
       setLoading(true);
-      
+
       // Fetch category
       const { data: categoryData, error: categoryError } = await supabase
         .from('categories')
         .select('*')
         .eq('slug', categorySlug)
         .single();
-      
+
       if (categoryError) {
         if (categoryError.code === 'PGRST116') {
           // No category found with this slug
@@ -66,20 +66,20 @@ export default function CategoryDetailClient({ slug }: { slug: string }) {
         }
         throw categoryError;
       }
-      
+
       setCategory(categoryData);
-      
+
       // Fetch products for this category
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
         .eq('category_id', categoryData.id)
         .order('name');
-      
+
       if (productsError) throw productsError;
       setProducts(productsData || []);
     } catch (error: any) {
-      toast({
+      toast.toast({
         title: 'Error',
         description: error.message || 'Failed to fetch category data',
         variant: 'destructive',
@@ -105,7 +105,7 @@ export default function CategoryDetailClient({ slug }: { slug: string }) {
         router.push('/categories');
       }
     }, [loading, router]);
-    
+
     return (
       <div className="container max-w-7xl mx-auto py-16 px-4 text-center">
         <Loader2 className="h-8 w-8 animate-spin mx-auto" />
@@ -123,13 +123,13 @@ export default function CategoryDetailClient({ slug }: { slug: string }) {
             Back to Categories
           </Link>
         </Button>
-        
+
         <h1 className="text-3xl font-bold">{category.name}</h1>
         {category.description && (
           <p className="text-muted-foreground mt-2">{category.description}</p>
         )}
       </div>
-      
+
       {products.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">No products found in this category.</p>

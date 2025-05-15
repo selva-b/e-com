@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client';
 import { sendEmail, EmailTemplateType } from '@/lib/email/emailService';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Import Firebase Admin only on the server side
 let admin: any;
@@ -23,12 +24,16 @@ export interface NotificationData {
   data?: Record<string, string>;
   email?: boolean;
   push?: boolean;
+  supabaseClient?: SupabaseClient; // Optional Supabase client for server-side operations
 }
 
 // Function to get notification template from database
-export const getNotificationTemplate = async (templateType: NotificationType) => {
+export const getNotificationTemplate = async (templateType: NotificationType, client?: SupabaseClient) => {
   try {
-    const { data, error } = await supabase
+    // Use provided client or fallback to default client
+    const db = client || supabase;
+
+    const { data, error } = await db
       .from('notification_templates')
       .select('*')
       .eq('type', templateType)
@@ -56,7 +61,13 @@ export const replaceTemplateVariables = (template: string, variables: Record<str
 };
 
 // Send push notification to a specific user
-export const sendPushNotification = async (userId: string, title: string, body: string, data: Record<string, string> = {}) => {
+export const sendPushNotification = async (
+  userId: string,
+  title: string,
+  body: string,
+  data: Record<string, string> = {},
+  client?: SupabaseClient
+) => {
   try {
     // Check if we're on the server side
     if (typeof window !== 'undefined') {
@@ -79,8 +90,11 @@ export const sendPushNotification = async (userId: string, title: string, body: 
       });
     }
 
+    // Use provided client or fallback to default client
+    const db = client || supabase;
+
     // Get user's FCM tokens from database
-    const { data: tokens, error } = await supabase
+    const { data: tokens, error } = await db
       .from('firebase_tokens')
       .select('token')
       .eq('user_id', userId);
@@ -109,7 +123,7 @@ export const sendPushNotification = async (userId: string, title: string, body: 
     const response = await admin.messaging().sendMulticast(message);
 
     // Log notification in database
-    await supabase.from('notification_logs').insert([
+    await db.from('notification_logs').insert([
       {
         user_id: userId,
         title,
@@ -130,7 +144,8 @@ export const sendPushNotification = async (userId: string, title: string, body: 
     console.error('Error sending push notification:', error);
 
     // Log failed notification attempt
-    await supabase.from('notification_logs').insert([
+    const db = client || supabase;
+    await db.from('notification_logs').insert([
       {
         user_id: userId,
         title,
@@ -150,8 +165,11 @@ export const sendNotification = async (notificationData: NotificationData) => {
   try {
     const results: any = { push: null, email: null };
 
+    // Use provided client or fallback to default client
+    const db = notificationData.supabaseClient || supabase;
+
     // Get user profile for email
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await db
       .from('profiles')
       .select('email, first_name, last_name')
       .eq('id', notificationData.userId)
@@ -165,7 +183,8 @@ export const sendNotification = async (notificationData: NotificationData) => {
         notificationData.userId,
         notificationData.title,
         notificationData.body,
-        notificationData.data || {}
+        notificationData.data || {},
+        db // Pass the Supabase client
       );
     }
 

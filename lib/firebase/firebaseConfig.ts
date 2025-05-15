@@ -22,18 +22,35 @@ if (typeof window !== 'undefined') {
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDScqhttw8arTOYIzG6gaUs4L4sFmpFP7U",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "e-com-55bec.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "e-com-55bec",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "e-com-55bec.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "495288878612",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:495288878612:web:1c5a20695221bf9ec48901",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-568ENVE6HG",
 };
 
+// Check if Firebase is configured
+const isFirebaseConfigured =
+  firebaseConfig.apiKey &&
+  firebaseConfig.projectId &&
+  firebaseConfig.messagingSenderId &&
+  firebaseConfig.appId;
+
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+let app;
+let db;
+
+try {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  db = getFirestore(app);
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+  app = null;
+  db = null;
+}
 
 // Request permission and get FCM token
 export const requestNotificationPermission = async () => {
@@ -55,17 +72,28 @@ export const requestNotificationPermission = async () => {
 
     // Ensure Firebase messaging is loaded
     if (!messaging || !getToken) {
-      // Wait for dynamic import to complete
-      await new Promise(resolve => {
-        const checkMessaging = () => {
-          if (messaging && getToken) {
-            resolve(true);
-          } else {
-            setTimeout(checkMessaging, 100);
-          }
-        };
-        checkMessaging();
-      });
+      try {
+        // Wait for dynamic import to complete
+        await new Promise((resolve, reject) => {
+          let attempts = 0;
+          const maxAttempts = 10;
+
+          const checkMessaging = () => {
+            attempts++;
+            if (messaging && getToken) {
+              resolve(true);
+            } else if (attempts >= maxAttempts) {
+              reject(new Error('Timed out waiting for Firebase messaging to load'));
+            } else {
+              setTimeout(checkMessaging, 100);
+            }
+          };
+          checkMessaging();
+        });
+      } catch (error) {
+        console.error('Error loading Firebase messaging:', error);
+        return null;
+      }
     }
 
     // Get messaging instance
@@ -73,7 +101,7 @@ export const requestNotificationPermission = async () => {
 
     // Get FCM token
     const currentToken = await getToken(messagingInstance, {
-      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BLBe_UOKjLKTgQ9iAhPQDZy9z1sJgCgQJBPvbVaFk3xLTOQQnOYlhMBAGlRVnTGzOJMgbhWJLZzJyW5DDtxrOOo',
     });
 
     if (!currentToken) {
@@ -96,24 +124,41 @@ export const onMessageListener = () => {
     // Ensure Firebase messaging is loaded
     if (!messaging || !onMessage) {
       // Wait for dynamic import to complete
+      let attempts = 0;
+      const maxAttempts = 10;
+
       const checkMessaging = () => {
+        attempts++;
         if (messaging && onMessage) {
-          const messagingInstance = messaging(app);
-          resolve(onMessage(messagingInstance, (payload) => {
-            console.log('Message received in foreground:', payload);
-            return payload;
-          }));
+          try {
+            const messagingInstance = messaging(app);
+            resolve(onMessage(messagingInstance, (payload) => {
+              console.log('Message received in foreground:', payload);
+              return payload;
+            }));
+          } catch (error) {
+            console.error('Error setting up message listener:', error);
+            resolve(() => {});
+          }
+        } else if (attempts >= maxAttempts) {
+          console.warn('Timed out waiting for Firebase messaging to load');
+          resolve(() => {});
         } else {
           setTimeout(checkMessaging, 100);
         }
       };
       checkMessaging();
     } else {
-      const messagingInstance = messaging(app);
-      resolve(onMessage(messagingInstance, (payload) => {
-        console.log('Message received in foreground:', payload);
-        return payload;
-      }));
+      try {
+        const messagingInstance = messaging(app);
+        resolve(onMessage(messagingInstance, (payload) => {
+          console.log('Message received in foreground:', payload);
+          return payload;
+        }));
+      } catch (error) {
+        console.error('Error setting up message listener:', error);
+        resolve(() => {});
+      }
     }
   });
 };

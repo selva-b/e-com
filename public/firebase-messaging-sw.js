@@ -4,48 +4,49 @@
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// Firebase configuration will be set by the main thread
-let firebaseConfig = null;
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDScqhttw8arTOYIzG6gaUs4L4sFmpFP7U",
+  authDomain: "e-com-55bec.firebaseapp.com",
+  projectId: "e-com-55bec",
+  storageBucket: "e-com-55bec.firebasestorage.app",
+  messagingSenderId: "495288878612",
+  appId: "1:495288878612:web:1c5a20695221bf9ec48901",
+  measurementId: "G-568ENVE6HG"
+};
 
-// Listen for messages from the main thread
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'FIREBASE_CONFIG') {
-    firebaseConfig = event.data.config;
-    
-    // Initialize Firebase with the received config
-    if (firebaseConfig && !firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-      
-      // Get messaging instance
-      const messaging = firebase.messaging();
-      
-      // Handle background messages
-      messaging.onBackgroundMessage((payload) => {
-        console.log('Received background message:', payload);
-        
-        // Customize notification here
-        const notificationTitle = payload.notification.title;
-        const notificationOptions = {
-          body: payload.notification.body,
-          icon: '/favicon.ico',
-          data: payload.data,
-          badge: '/favicon.ico',
-          vibrate: [200, 100, 200],
-        };
-        
-        self.registration.showNotification(notificationTitle, notificationOptions);
-      });
-    }
-  }
-});
+// Initialize Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+
+  // Get messaging instance
+  const messaging = firebase.messaging();
+
+  // Handle background messages
+  messaging.onBackgroundMessage((payload) => {
+    console.log('Received background message:', payload);
+
+    // Customize notification here
+    const notificationTitle = payload.notification.title;
+    const notificationOptions = {
+      body: payload.notification.body,
+      icon: '/favicon.ico',
+      data: payload.data,
+      badge: '/favicon.ico',
+      vibrate: [200, 100, 200],
+    };
+
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  });
+}
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
+
   // Get the URL to open from the notification data
   const urlToOpen = event.notification.data?.url || '/';
-  
+
   event.waitUntil(
     clients.matchAll({
       type: 'window',
@@ -59,7 +60,7 @@ self.addEventListener('notificationclick', (event) => {
           return client.focus();
         }
       }
-      
+
       // If no window/tab is already open, open a new one
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
