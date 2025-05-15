@@ -4,21 +4,21 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration from environment variables
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDScqhttw8arTOYIzG6gaUs4L4sFmpFP7U",
-  authDomain: "e-com-55bec.firebaseapp.com",
-  projectId: "e-com-55bec",
-  storageBucket: "e-com-55bec.firebasestorage.app",
-  messagingSenderId: "495288878612",
-  appId: "1:495288878612:web:1c5a20695221bf9ec48901",
-  measurementId: "G-568ENVE6HG"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
-let app;
-let analytics;
+let app: any;
+let analytics: any;
 
 // Only initialize Firebase in the browser
 if (typeof window !== 'undefined') {
@@ -116,11 +116,11 @@ export const requestNotificationPermission = async () => {
 
     // Get FCM token
     console.log('Getting FCM token...');
-    
-    // Use a valid VAPID key from Firebase console
-    const vapidKey = 'BPQYoTQlsJQeGnCB9mJwuT_We_5RQlRYXUmcCgZrUJgGUZrTvYxjI6GGpqNKjIJCGC_Z_Vg8eUJtQHjrLmjFV-A';
-    console.log('Using VAPID key:', vapidKey);
-    
+
+    // Use VAPID key from environment variables
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+    console.log('Using VAPID key:', vapidKey ? 'Available' : 'Not available');
+
     // Get service worker registration
     let swRegistration;
     try {
@@ -132,10 +132,10 @@ export const requestNotificationPermission = async () => {
     } catch (swError) {
       console.error('Error getting service worker registration:', swError);
     }
-    
+
     // Try to get token with different configurations
     let currentToken = null;
-    
+
     try {
       // First attempt: with service worker registration
       if (swRegistration) {
@@ -148,7 +148,7 @@ export const requestNotificationPermission = async () => {
     } catch (error) {
       console.error('Error getting token with service worker registration:', error);
     }
-    
+
     // If first attempt failed, try without service worker registration
     if (!currentToken) {
       try {

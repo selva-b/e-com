@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-
-// Razorpay configuration
-const KEY_ID = 'rzp_test_3eVIB91QVNpqhz';
-const SECRET_KEY = 'f97KYA8esSWGqy1z1rsGkmGI';
+import { RAZORPAY_CONFIG } from '@/lib/razorpay/config';
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +15,7 @@ export async function POST(request: Request) {
       currency,
       receipt,
       status: 'created',
-      key: KEY_ID,
+      key: RAZORPAY_CONFIG.KEY_ID,
     };
 
     return NextResponse.json(orderData);
@@ -39,7 +36,7 @@ export async function PUT(request: Request) {
     // Verify the payment signature
     const text = `${razorpay_order_id}|${razorpay_payment_id}`;
     const generatedSignature = crypto
-      .createHmac('sha256', SECRET_KEY)
+      .createHmac('sha256', RAZORPAY_CONFIG.SECRET_KEY as string)
       .update(text)
       .digest('hex');
 

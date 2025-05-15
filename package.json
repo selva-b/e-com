@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/generate-firebase-sw.js && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate-firebase-sw": "node scripts/generate-firebase-sw.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -76,5 +77,8 @@
     "utf-8-validate": "^6.0.5",
     "vaul": "^0.9.9",
     "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "dotenv": "^16.5.0"
   }
 }

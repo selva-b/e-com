@@ -13,18 +13,8 @@ export function createClient() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    console.warn('Environment variables for Supabase not found, using fallback credentials. This is fine for development but should be configured properly in production.');
-    // Return a client with the fallback credentials
-    return createSupabaseClient<Database>(
-      'https://dpzoaypkgtnqjdbdlzve.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwem9heXBrZ3RucWpkYmRsenZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwNTMxNzYsImV4cCI6MjA2MjYyOTE3Nn0.vYdq4sGpZL1Lh5sEpXOsGDwQcfvxTgtAY73VwDlKLqk',
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      }
-    );
+    console.error('Environment variables for Supabase not found. Please check your .env.local file.');
+    throw new Error('Supabase environment variables are not set');
   }
 
   return createSupabaseClient<Database>(

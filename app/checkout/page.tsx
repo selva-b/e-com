@@ -213,7 +213,7 @@ export default function CheckoutPage() {
       // Initialize Razorpay payment
       if (typeof window.Razorpay !== 'undefined') {
         const options = {
-          key: 'rzp_test_3eVIB91QVNpqhz', // Your Razorpay Key ID
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Your Razorpay Key ID
           amount: amount,
           currency: 'INR',
           name: 'E-com Store',
