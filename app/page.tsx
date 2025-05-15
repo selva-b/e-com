@@ -5,12 +5,48 @@ import ProductSlider from '@/components/products/ProductSlider';
 import FeatureCard from '@/components/home/FeatureCard';
 import CategoryGrid from '@/components/home/CategoryGrid';
 import Banner from '@/components/home/Banner';
+import FlashSaleTimer from '@/components/home/FlashSaleTimer';
+import { getFlashSaleSettings } from '@/lib/services/settings-service';
 
 export default async function Home() {
+  // Fetch flash sale settings
+  const {
+    showFlashSaleSection,
+    flashSaleSectionTitle,
+    flashSaleSectionSubtitle
+  } = await getFlashSaleSettings();
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Banner */}
       <Banner />
+
+      {/* Flash Sale Section - Only shown if enabled in admin settings */}
+      {showFlashSaleSection && (
+        <section className="py-12 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/20 dark:to-red-900/20">
+          <div className="container px-4 mx-auto">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex flex-col">
+                <div className="flex items-center mb-2">
+                  <h2 className="text-3xl font-bold text-red-600 dark:text-red-500">
+                    {flashSaleSectionTitle}
+                  </h2>
+                  <span className="ml-3 px-3 py-1 bg-red-500 text-white text-sm font-semibold rounded-full animate-pulse">
+                    {flashSaleSectionSubtitle}
+                  </span>
+                </div>
+                <FlashSaleTimer />
+              </div>
+              <Button variant="ghost" asChild className="text-red-600 hover:text-red-700 hover:bg-red-100">
+                <Link href="/flash-sale" className="flex items-center">
+                  View All <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <ProductSlider type="flash-sale" />
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="py-12 bg-accent/20">

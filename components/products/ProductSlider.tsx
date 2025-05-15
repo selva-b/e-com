@@ -16,11 +16,38 @@ interface Product {
   category_id: string;
   slug: string;
   featured: boolean;
+  discount_percent?: number | null;
+  is_on_sale?: boolean;
+  sale_start_date?: string | null;
+  sale_end_date?: string | null;
 }
 
 interface ProductSliderProps {
-  type: 'featured' | 'newest' | 'category';
+  type: 'featured' | 'newest' | 'category' | 'flash-sale';
   categoryId?: string;
+}
+
+// Helper function to check if a product is currently on sale
+function isProductOnSale(product: Product): boolean {
+  if (!product.is_on_sale) return false;
+
+  const now = new Date();
+  const startDate = product.sale_start_date ? new Date(product.sale_start_date) : null;
+  const endDate = product.sale_end_date ? new Date(product.sale_end_date) : null;
+
+  // If no dates are set, consider it always on sale when is_on_sale is true
+  if (!startDate && !endDate) return true;
+
+  // Check if current time is within the sale period
+  if (startDate && endDate) {
+    return now >= startDate && now <= endDate;
+  } else if (startDate) {
+    return now >= startDate;
+  } else if (endDate) {
+    return now <= endDate;
+  }
+
+  return false;
 }
 
 // Sample placeholder products
@@ -34,7 +61,11 @@ const placeholderProducts = [
     inventory_count: 25,
     category_id: '1',
     slug: 'premium-wireless-headphones',
-    featured: true
+    featured: true,
+    is_on_sale: true,
+    discount_percent: 20,
+    sale_start_date: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    sale_end_date: new Date(Date.now() + 86400000).toISOString() // 1 day from now
   },
   {
     id: '2',
@@ -45,7 +76,11 @@ const placeholderProducts = [
     inventory_count: 50,
     category_id: '5',
     slug: 'designer-leather-wallet',
-    featured: true
+    featured: true,
+    is_on_sale: true,
+    discount_percent: 15,
+    sale_start_date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+    sale_end_date: new Date(Date.now() + 172800000).toISOString() // 2 days from now
   },
   {
     id: '3',
@@ -78,7 +113,11 @@ const placeholderProducts = [
     inventory_count: 40,
     category_id: '1',
     slug: 'portable-bluetooth-speaker',
-    featured: true
+    featured: true,
+    is_on_sale: true,
+    discount_percent: 30,
+    sale_start_date: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
+    sale_end_date: new Date(Date.now() + 43200000).toISOString() // 12 hours from now
   },
   {
     id: '6',
@@ -97,34 +136,42 @@ export default function ProductSlider({ type, categoryId }: ProductSliderProps) 
   const [products, setProducts] = useState<Product[]>(placeholderProducts);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  
+
   const productsPerView = {
     sm: 1,
     md: 2,
     lg: 4
   };
-  
+
   useEffect(() => {
     async function fetchProducts() {
       try {
         let query = supabase.from('products').select('*');
-        
+
         if (type === 'featured') {
           query = query.eq('featured', true);
         } else if (type === 'newest') {
           query = query.order('created_at', { ascending: false }).limit(12);
         } else if (type === 'category' && categoryId) {
           query = query.eq('category_id', categoryId);
+        } else if (type === 'flash-sale') {
+          query = query.eq('is_on_sale', true);
         }
-        
+
         const { data, error } = await query;
-        
+
         if (error) {
           throw error;
         }
-        
+
         if (data && data.length > 0) {
-          setProducts(data);
+          // For flash sale type, filter to only show active sales
+          if (type === 'flash-sale') {
+            const activeFlashSaleProducts = data.filter(product => isProductOnSale(product));
+            setProducts(activeFlashSaleProducts);
+          } else {
+            setProducts(data);
+          }
         }
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -133,32 +180,42 @@ export default function ProductSlider({ type, categoryId }: ProductSliderProps) 
         setLoading(false);
       }
     }
-    
+
     fetchProducts();
   }, [type, categoryId]);
-  
+
   const handlePrevious = () => {
-    setCurrentIndex((prevIndex) => 
+    setCurrentIndex((prevIndex) =>
       prevIndex === 0 ? Math.max(0, products.length - productsPerView.lg) : prevIndex - 1
     );
   };
-  
+
   const handleNext = () => {
-    setCurrentIndex((prevIndex) => 
+    setCurrentIndex((prevIndex) =>
       prevIndex >= products.length - productsPerView.lg ? 0 : prevIndex + 1
     );
   };
-  
+
+  // Handle empty flash sale results
+  if (type === 'flash-sale' && products.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-lg text-muted-foreground">No active flash sales at the moment.</p>
+        <p className="text-sm text-muted-foreground mt-2">Check back soon for exciting deals!</p>
+      </div>
+    );
+  }
+
   return (
     <div className="relative">
       <div className="overflow-hidden">
-        <div 
+        <div
           className="flex transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${currentIndex * (100 / productsPerView.lg)}%)` }}
         >
           {products.map((product) => (
-            <div 
-              key={product.id} 
+            <div
+              key={product.id}
               className="w-full sm:w-1/2 lg:w-1/4 flex-shrink-0 p-2"
             >
               <ProductCard product={product} />
@@ -166,10 +223,10 @@ export default function ProductSlider({ type, categoryId }: ProductSliderProps) 
           ))}
         </div>
       </div>
-      
+
       {products.length > productsPerView.lg && (
         <div className="flex justify-end mt-6 gap-2">
-          <Button 
+          <Button
             onClick={handlePrevious}
             variant="outline"
             size="icon"
@@ -178,7 +235,7 @@ export default function ProductSlider({ type, categoryId }: ProductSliderProps) 
             <ChevronLeft className="h-5 w-5" />
             <span className="sr-only">Previous</span>
           </Button>
-          <Button 
+          <Button
             onClick={handleNext}
             variant="outline"
             size="icon"

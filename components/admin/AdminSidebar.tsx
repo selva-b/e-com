@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Bell,
   CreditCard,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -70,6 +71,11 @@ const adminRoutes = [
     label: 'Currency',
     icon: CreditCard,
     href: '/admin/currency',
+  },
+  {
+    label: 'Flash Sale',
+    icon: Zap,
+    href: '/admin/flash-sale-settings',
   },
   {
     label: 'Settings',
