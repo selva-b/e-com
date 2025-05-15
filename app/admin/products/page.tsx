@@ -23,6 +23,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -63,6 +64,10 @@ const productSchema = z.object({
   inventory_count: z.string().min(1, 'Inventory count is required'),
   category_id: z.string().min(1, 'Category is required'),
   featured: z.boolean().default(false),
+  discount_percent: z.string().optional(),
+  is_on_sale: z.boolean().default(false),
+  sale_start_date: z.string().optional(),
+  sale_end_date: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -77,6 +82,10 @@ interface Product {
   category_id: string;
   slug: string;
   featured: boolean;
+  discount_percent?: number | null;
+  is_on_sale?: boolean;
+  sale_start_date?: string | null;
+  sale_end_date?: string | null;
   categories?: {
     name: string;
   };
@@ -109,6 +118,10 @@ export default function ProductsPage() {
       inventory_count: '0',
       category_id: '',
       featured: false,
+      discount_percent: '0',
+      is_on_sale: false,
+      sale_start_date: '',
+      sale_end_date: '',
     },
   });
 
@@ -172,6 +185,10 @@ export default function ProductsPage() {
         category_id: data.category_id,
         featured: data.featured,
         slug: data.name.toLowerCase().replace(/\s+/g, '-'),
+        discount_percent: data.discount_percent ? parseFloat(data.discount_percent) : 0,
+        is_on_sale: data.is_on_sale,
+        sale_start_date: data.sale_start_date ? new Date(data.sale_start_date).toISOString() : null,
+        sale_end_date: data.sale_end_date ? new Date(data.sale_end_date).toISOString() : null,
       };
 
       const { error } = await supabase
@@ -289,7 +306,12 @@ export default function ProductsPage() {
                       <FormItem>
                         <FormLabel>Price</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" {...field} />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -303,7 +325,11 @@ export default function ProductsPage() {
                       <FormItem>
                         <FormLabel>Inventory Count</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -372,6 +398,96 @@ export default function ProductsPage() {
                           Display this product on the homepage
                         </p>
                       </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="discount_percent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Discount Percentage</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          placeholder="0"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Enter discount percentage (0-100)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="is_on_sale"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Flash Sale</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Mark this product as being on flash sale
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="sale_start_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sale Start Date</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="datetime-local"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        When the flash sale starts
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="sale_end_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sale End Date</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="datetime-local"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        When the flash sale ends
+                      </FormDescription>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -447,7 +563,7 @@ export default function ProductsPage() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
+                            <AlertDialogAction
                               onClick={() => handleDelete(product.id)}
                               className="bg-destructive text-destructive-foreground"
                             >

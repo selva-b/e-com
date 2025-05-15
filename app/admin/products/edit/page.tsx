@@ -46,13 +46,17 @@ import Link from 'next/link';
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
-  price: z.string().min(1, 'Price is required'),
+  price: z.number().min(1, 'Price is required'),
   image_url: z.string().url('Must be a valid URL'),
-  inventory_count: z.string().min(1, 'Inventory count is required'),
+  inventory_count: z.number().min(1, 'Inventory count is required'),
   category_id: z.string().min(1, 'Category is required'),
   featured: z.boolean().default(false),
-  stock: z.string().min(1, 'Stock is required'),
+  stock: z.number().optional(),
   slug: z.string().min(1, 'Slug is required'),
+  discount_percent: z.string().optional(),
+  is_on_sale: z.boolean().default(false),
+  sale_start_date: z.string().optional(),
+  sale_end_date: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -69,7 +73,7 @@ export default function EditProductPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productId = searchParams.get('id');
-  
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -88,6 +92,10 @@ export default function EditProductPage() {
       featured: false,
       stock: '0',
       slug: '',
+      discount_percent: '0',
+      is_on_sale: false,
+      sale_start_date: '',
+      sale_end_date: '',
     },
   });
 
@@ -109,7 +117,7 @@ export default function EditProductPage() {
       });
       router.push('/admin/products');
     }
-    
+
     fetchCategories();
   }, [productId, router]);
 
@@ -123,7 +131,7 @@ export default function EditProductPage() {
         .single();
 
       if (error) throw error;
-      
+
       if (data) {
         form.setValue('name', data.name);
         form.setValue('description', data.description);
@@ -134,6 +142,10 @@ export default function EditProductPage() {
         form.setValue('featured', data.featured);
         form.setValue('stock', data.stock);
         form.setValue('slug', data.slug);
+        form.setValue('discount_percent', data.discount_percent?.toString() || '0');
+        form.setValue('is_on_sale', data.is_on_sale || false);
+        form.setValue('sale_start_date', data.sale_start_date ? new Date(data.sale_start_date).toISOString().split('T')[0] : '');
+        form.setValue('sale_end_date', data.sale_end_date ? new Date(data.sale_end_date).toISOString().split('T')[0] : '');
       }
     } catch (error: any) {
       toast({
@@ -167,10 +179,10 @@ export default function EditProductPage() {
 
   async function onSubmit(data: ProductFormValues) {
     if (!productId) return;
-    
+
     try {
       setSaving(true);
-      
+
       // Convert string values to numbers for database
       const productData = {
         name: data.name,
@@ -182,6 +194,10 @@ export default function EditProductPage() {
         featured: data.featured,
         stock: data.stock,
         slug: data.slug,
+        discount_percent: data.discount_percent ? parseFloat(data.discount_percent) : 0,
+        is_on_sale: data.is_on_sale,
+        sale_start_date: data.sale_start_date ? new Date(data.sale_start_date).toISOString() : null,
+        sale_end_date: data.sale_end_date ? new Date(data.sale_end_date).toISOString() : null,
         updated_at: new Date().toISOString(),
       };
 
@@ -196,7 +212,7 @@ export default function EditProductPage() {
         title: 'Product updated',
         description: 'The product has been updated successfully.',
       });
-      
+
       router.push('/admin/products');
     } catch (error: any) {
       toast({
@@ -211,7 +227,7 @@ export default function EditProductPage() {
 
   async function handleDelete() {
     if (!productId) return;
-    
+
     try {
       const { error } = await supabase
         .from('products')
@@ -255,7 +271,7 @@ export default function EditProductPage() {
         </Button>
         <h1 className="text-3xl font-bold">Edit Product</h1>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <Card>
@@ -282,7 +298,7 @@ export default function EditProductPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="slug"
@@ -300,7 +316,7 @@ export default function EditProductPage() {
                       )}
                     />
                   </div>
-                  
+
                   <FormField
                     control={form.control}
                     name="description"
@@ -314,7 +330,7 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
@@ -323,13 +339,18 @@ export default function EditProductPage() {
                         <FormItem>
                           <FormLabel>Price</FormLabel>
                           <FormControl>
-                            <Input type="number" step="0.01" {...field} />
+                            <Input
+                              type="number"
+                              step="0.01"
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="inventory_count"
@@ -337,13 +358,17 @@ export default function EditProductPage() {
                         <FormItem>
                           <FormLabel>Inventory Count</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} />
+                            <Input
+                              type="number"
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="stock"
@@ -351,14 +376,18 @@ export default function EditProductPage() {
                         <FormItem>
                           <FormLabel>Stock</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} />
+                            <Input
+                              type="number"
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                  
+
                   <FormField
                     control={form.control}
                     name="image_url"
@@ -372,7 +401,7 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="category_id"
@@ -400,7 +429,7 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="featured"
@@ -421,7 +450,95 @@ export default function EditProductPage() {
                       </FormItem>
                     )}
                   />
-                  
+
+                  <FormField
+                    control={form.control}
+                    name="discount_percent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Discount Percentage</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter discount percentage (0-100)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="is_on_sale"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Flash Sale</FormLabel>
+                          <FormDescription>
+                            Mark this product as being on flash sale
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="sale_start_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sale Start Date</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="datetime-local"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          When the flash sale starts
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="sale_end_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sale End Date</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="datetime-local"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          When the flash sale ends
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <div className="flex justify-between pt-4">
                     <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                       <AlertDialogTrigger asChild>
@@ -446,7 +563,7 @@ export default function EditProductPage() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                    
+
                     <Button type="submit" disabled={saving}>
                       {saving ? (
                         <>
@@ -466,7 +583,7 @@ export default function EditProductPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         <div>
           <Card>
             <CardHeader>
@@ -475,9 +592,9 @@ export default function EditProductPage() {
             <CardContent>
               <div className="aspect-square rounded-md overflow-hidden bg-muted mb-4">
                 {form.watch('image_url') ? (
-                  <img 
-                    src={form.watch('image_url')} 
-                    alt={form.watch('name')} 
+                  <img
+                    src={form.watch('image_url')}
+                    alt={form.watch('name')}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -486,13 +603,13 @@ export default function EditProductPage() {
                   </div>
                 )}
               </div>
-              
+
               <h3 className="font-semibold text-lg">{form.watch('name') || 'Product Name'}</h3>
-              
+
               <p className="text-2xl font-bold my-2">
                 ${parseFloat(form.watch('price') || '0').toFixed(2)}
               </p>
-              
+
               <div className="text-sm text-muted-foreground mt-4">
                 <p><strong>Inventory:</strong> {form.watch('inventory_count') || '0'}</p>
                 <p><strong>Stock:</strong> {form.watch('stock') || '0'}</p>

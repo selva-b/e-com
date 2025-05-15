@@ -20,6 +20,10 @@ interface Product {
   category_id: string;
   stock: number;
   featured: boolean;
+  discount_percent?: number | null;
+  is_on_sale?: boolean;
+  sale_start_date?: string | null;
+  sale_end_date?: string | null;
   categories: {
     name: string;
     slug: string;
@@ -30,7 +34,7 @@ export default function ProductPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const slug = searchParams.get('slug');
-  
+
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -60,7 +64,7 @@ export default function ProductPage() {
         `)
         .eq('slug', productSlug)
         .single();
-      
+
       if (error) {
         if (error.code === 'PGRST116') {
           router.push('/products');
@@ -68,7 +72,7 @@ export default function ProductPage() {
         }
         throw error;
       }
-      
+
       setProduct(data);
     } catch (error: any) {
       toast({
@@ -83,7 +87,7 @@ export default function ProductPage() {
 
   function handleAddToCart() {
     if (!product) return;
-    
+
     addToCart({
       id: product.id,
       name: product.name,
@@ -92,7 +96,7 @@ export default function ProductPage() {
       inventory_count: product.stock,
       quantity,
     });
-    
+
     toast({
       title: 'Added to Cart',
       description: `${product.name} has been added to your cart.`,
@@ -140,7 +144,7 @@ export default function ProductPage() {
           Back to Products
         </Link>
       </Button>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="aspect-square relative overflow-hidden rounded-lg bg-muted">
           {product.image_url ? (
@@ -155,39 +159,39 @@ export default function ProductPage() {
             </div>
           )}
         </div>
-        
+
         <div>
           <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-          
+
           <div className="flex items-center gap-2 mb-4">
-            <Link 
+            <Link
               href={`/categories/${product.categories.slug}`}
               className="text-sm text-muted-foreground hover:text-primary"
             >
               {product.categories.name}
             </Link>
           </div>
-          
+
           <p className="text-2xl font-bold mb-6">${product.price.toFixed(2)}</p>
-          
+
           <div className="prose max-w-none mb-8">
             <p>{product.description}</p>
           </div>
-          
+
           <div className="flex items-center gap-4 mb-6">
             <div className="flex items-center border rounded-md">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={decrementQuantity}
                 disabled={quantity <= 1}
               >
                 -
               </Button>
               <span className="w-12 text-center">{quantity}</span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={incrementQuantity}
                 disabled={product.stock <= quantity}
               >
@@ -198,19 +202,19 @@ export default function ProductPage() {
               {product.stock} items available
             </p>
           </div>
-          
+
           <div className="flex flex-wrap gap-4">
-            <Button 
-              onClick={handleAddToCart} 
+            <Button
+              onClick={handleAddToCart}
               disabled={product.stock === 0}
               className="flex-1"
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
               Add to Cart
             </Button>
-            
-            <WishlistButton 
-              productId={product.id} 
+
+            <WishlistButton
+              productId={product.id}
               variant="outline"
               className="w-12 flex-shrink-0"
             />

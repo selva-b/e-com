@@ -46,6 +46,11 @@ const adminRoutes = [
     href: '/admin/customers',
   },
   {
+    label: 'Coupons',
+    icon: FileText,
+    href: '/admin/coupons',
+  },
+  {
     label: 'Analytics',
     icon: BarChart,
     href: '/admin/analytics',

@@ -2,9 +2,9 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useCartContext } from '@/context/CartContext';
-import { 
-  ShoppingBag, 
-  User, 
+import {
+  ShoppingBag,
+  User,
   Menu,
   LogOut,
   ShoppingCart,
@@ -44,7 +44,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  
+
   // After mounting, we have access to the theme
   useEffect(() => {
     setMounted(true);
@@ -67,8 +67,8 @@ export default function Header() {
               </SheetHeader>
               <nav className="flex flex-col gap-2 py-4">
                 <SheetClose asChild>
-                  <Link 
-                    href="/" 
+                  <Link
+                    href="/"
                     className="flex items-center px-4 py-2 rounded-md hover:bg-accent"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -76,8 +76,8 @@ export default function Header() {
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link 
-                    href="/products" 
+                  <Link
+                    href="/products"
                     className="flex items-center px-4 py-2 rounded-md hover:bg-accent"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -85,8 +85,8 @@ export default function Header() {
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link 
-                    href="/categories" 
+                  <Link
+                    href="/categories"
                     className="flex items-center px-4 py-2 rounded-md hover:bg-accent"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -94,8 +94,17 @@ export default function Header() {
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link 
-                    href="/cart" 
+                  <Link
+                    href="/flash-sale"
+                    className="flex items-center px-4 py-2 rounded-md hover:bg-accent text-red-500 font-bold"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Flash Sale 🔥
+                  </Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link
+                    href="/cart"
                     className="flex items-center px-4 py-2 rounded-md hover:bg-accent"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -105,8 +114,8 @@ export default function Header() {
                 {user && (
                   <>
                     <SheetClose asChild>
-                      <Link 
-                        href="/account" 
+                      <Link
+                        href="/account"
                         className="flex items-center px-4 py-2 rounded-md hover:bg-accent"
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -114,8 +123,8 @@ export default function Header() {
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
-                      <Link 
-                        href="/orders" 
+                      <Link
+                        href="/orders"
                         className="flex items-center px-4 py-2 rounded-md hover:bg-accent"
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -124,8 +133,8 @@ export default function Header() {
                     </SheetClose>
                     {isAdmin && (
                       <SheetClose asChild>
-                        <Link 
-                          href="/admin" 
+                        <Link
+                          href="/admin"
                           className="flex items-center px-4 py-2 rounded-md hover:bg-accent"
                           onClick={() => setMobileMenuOpen(false)}
                         >
@@ -133,7 +142,7 @@ export default function Header() {
                         </Link>
                       </SheetClose>
                     )}
-                    <button 
+                    <button
                       className="flex items-center px-4 py-2 rounded-md hover:bg-accent text-left"
                       onClick={() => {
                         signOut();
@@ -147,8 +156,8 @@ export default function Header() {
                 {!user && (
                   <>
                     <SheetClose asChild>
-                      <Link 
-                        href="/login" 
+                      <Link
+                        href="/login"
                         className="flex items-center px-4 py-2 rounded-md hover:bg-accent"
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -156,8 +165,8 @@ export default function Header() {
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
-                      <Link 
-                        href="/register" 
+                      <Link
+                        href="/register"
                         className="flex items-center px-4 py-2 rounded-md hover:bg-accent"
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -175,23 +184,29 @@ export default function Header() {
           </Link>
         </div>
         <nav className="hidden md:flex items-center gap-6">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="text-sm font-medium transition-colors hover:text-primary"
           >
             Home
           </Link>
-          <Link 
-            href="/products" 
+          <Link
+            href="/products"
             className="text-sm font-medium transition-colors hover:text-primary"
           >
             Products
           </Link>
-          <Link 
-            href="/categories" 
+          <Link
+            href="/categories"
             className="text-sm font-medium transition-colors hover:text-primary"
           >
             Categories
+          </Link>
+          <Link
+            href="/flash-sale"
+            className="text-sm font-medium transition-colors hover:text-primary text-red-500 font-bold animate-pulse"
+          >
+            Flash Sale
           </Link>
         </nav>
         <div className="flex items-center gap-2">
@@ -215,15 +230,15 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          
+
           {/* Replace the search button with our new NavbarSearch component */}
           <NavbarSearch />
-          
+
           <Button variant="ghost" size="icon" asChild className="relative">
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
-                <Badge 
+                <Badge
                   className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0"
                   variant="destructive"
                 >
@@ -233,7 +248,7 @@ export default function Header() {
               <span className="sr-only">Cart</span>
             </Link>
           </Button>
-          
+
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

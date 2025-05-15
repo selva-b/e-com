@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCartContext } from '@/context/CartContext';
-import { Minus, Plus, ShoppingCart } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import WishlistButton from './WishlistButton';
 
 interface Product {
@@ -18,10 +19,102 @@ interface Product {
   category_id: string;
   slug: string;
   featured: boolean;
+  discount_percent?: number | null;
+  is_on_sale?: boolean;
+  sale_start_date?: string | null;
+  sale_end_date?: string | null;
 }
 
 interface ProductDetailProps {
   product: Product;
+}
+
+// Helper function to check if a product is currently on sale
+function isProductOnSale(product: Product): boolean {
+  if (!product.is_on_sale) return false;
+
+  const now = new Date();
+  const startDate = product.sale_start_date ? new Date(product.sale_start_date) : null;
+  const endDate = product.sale_end_date ? new Date(product.sale_end_date) : null;
+
+  // If no dates are set, consider it always on sale when is_on_sale is true
+  if (!startDate && !endDate) return true;
+
+  // Check if current time is within the sale period
+  if (startDate && endDate) {
+    return now >= startDate && now <= endDate;
+  } else if (startDate) {
+    return now >= startDate;
+  } else if (endDate) {
+    return now <= endDate;
+  }
+
+  return false;
+}
+
+// Flash Sale Countdown Component
+function FlashSaleCountdown({ endDate }: { endDate: Date }) {
+  const [timeLeft, setTimeLeft] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = endDate.getTime() - new Date().getTime();
+
+      if (difference <= 0) {
+        return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+      }
+
+      return {
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((difference / 1000 / 60) % 60),
+        seconds: Math.floor((difference / 1000) % 60)
+      };
+    };
+
+    // Initial calculation
+    setTimeLeft(calculateTimeLeft());
+
+    // Update every second
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    // Clean up
+    return () => clearInterval(timer);
+  }, [endDate]);
+
+  return (
+    <div className="mt-2 flex items-center">
+      <Clock className="h-4 w-4 mr-2 text-red-600" />
+      <div className="flex gap-2 text-sm font-medium text-red-600">
+        <div className="flex flex-col items-center">
+          <span className="text-lg">{timeLeft.days}</span>
+          <span className="text-xs">days</span>
+        </div>
+        <span>:</span>
+        <div className="flex flex-col items-center">
+          <span className="text-lg">{timeLeft.hours.toString().padStart(2, '0')}</span>
+          <span className="text-xs">hrs</span>
+        </div>
+        <span>:</span>
+        <div className="flex flex-col items-center">
+          <span className="text-lg">{timeLeft.minutes.toString().padStart(2, '0')}</span>
+          <span className="text-xs">mins</span>
+        </div>
+        <span>:</span>
+        <div className="flex flex-col items-center">
+          <span className="text-lg">{timeLeft.seconds.toString().padStart(2, '0')}</span>
+          <span className="text-xs">secs</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ProductDetail({ product }: ProductDetailProps) {
@@ -73,7 +166,48 @@ export default function ProductDetail({ product }: ProductDetailProps) {
         {/* Product Details */}
         <div className="flex flex-col">
           <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-          <p className="text-2xl font-semibold mb-4">${product.price.toFixed(2)}</p>
+
+          {/* Price display with discount */}
+          <div className="flex items-center gap-3 mb-4">
+            {product.discount_percent && product.discount_percent > 0 ? (
+              <>
+                <p className="text-2xl font-semibold text-green-600">
+                  ${(product.price * (1 - (product.discount_percent / 100))).toFixed(2)}
+                </p>
+                <p className="text-xl text-muted-foreground line-through">
+                  ${product.price.toFixed(2)}
+                </p>
+                <Badge className="bg-green-500 ml-2">
+                  {product.discount_percent}% OFF
+                </Badge>
+              </>
+            ) : (
+              <p className="text-2xl font-semibold">${product.price.toFixed(2)}</p>
+            )}
+          </div>
+
+          {/* Flash Sale Countdown */}
+          {product.is_on_sale && isProductOnSale(product) && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-center gap-2 text-red-600 font-semibold mb-1">
+                <Badge variant="destructive" className="bg-red-500 animate-pulse">Flash Sale</Badge>
+                <span>Limited Time Offer!</span>
+              </div>
+              {product.sale_start_date && new Date() < new Date(product.sale_start_date) && (
+                <p className="text-sm text-red-600">
+                  Sale starts: {new Date(product.sale_start_date).toLocaleString()}
+                </p>
+              )}
+              {product.sale_end_date && (
+                <div>
+                  <p className="text-sm text-red-600">
+                    Sale ends: {new Date(product.sale_end_date).toLocaleString()}
+                  </p>
+                  <FlashSaleCountdown endDate={new Date(product.sale_end_date)} />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="mb-6">
             <p className="text-gray-600">{product.description}</p>

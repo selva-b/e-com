@@ -20,10 +20,37 @@ interface Product {
   category_id: string;
   slug: string;
   featured: boolean;
+  discount_percent?: number | null;
+  is_on_sale?: boolean;
+  sale_start_date?: string | null;
+  sale_end_date?: string | null;
 }
 
 interface ProductCardProps {
   product: Product;
+}
+
+// Helper function to check if a product is currently on sale
+function isProductOnSale(product: Product): boolean {
+  if (!product.is_on_sale) return false;
+
+  const now = new Date();
+  const startDate = product.sale_start_date ? new Date(product.sale_start_date) : null;
+  const endDate = product.sale_end_date ? new Date(product.sale_end_date) : null;
+
+  // If no dates are set, consider it always on sale when is_on_sale is true
+  if (!startDate && !endDate) return true;
+
+  // Check if current time is within the sale period
+  if (startDate && endDate) {
+    return now >= startDate && now <= endDate;
+  } else if (startDate) {
+    return now >= startDate;
+  } else if (endDate) {
+    return now <= endDate;
+  }
+
+  return false;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
@@ -99,21 +126,47 @@ export default function ProductCard({ product }: ProductCardProps) {
             />
           </div>
 
-          {/* Badge for featured products */}
-          {product.featured && (
-            <Badge
-              className="absolute top-2 left-2"
-              variant="secondary"
-            >
-              Featured
-            </Badge>
-          )}
+          {/* Badges for product status */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {product.featured && (
+              <Badge variant="secondary">
+                Featured
+              </Badge>
+            )}
+
+            {product.is_on_sale && isProductOnSale(product) && (
+              <Badge variant="destructive" className="bg-red-500 animate-pulse">
+                Flash Sale
+              </Badge>
+            )}
+
+            {product.discount_percent && product.discount_percent > 0 && (
+              <Badge variant="default" className="bg-green-500">
+                {product.discount_percent}% OFF
+              </Badge>
+            )}
+          </div>
         </div>
 
         <CardContent className="p-4">
           <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
           <p className="text-muted-foreground text-sm mb-2 line-clamp-2">{product.description}</p>
-          <p className="font-bold text-lg">${product.price.toFixed(2)}</p>
+
+          {/* Price display with discount */}
+          <div className="flex items-center gap-2">
+            {product.discount_percent && product.discount_percent > 0 ? (
+              <>
+                <p className="font-bold text-lg text-green-600">
+                  ${(product.price * (1 - (product.discount_percent / 100))).toFixed(2)}
+                </p>
+                <p className="text-sm text-muted-foreground line-through">
+                  ${product.price.toFixed(2)}
+                </p>
+              </>
+            ) : (
+              <p className="font-bold text-lg">${product.price.toFixed(2)}</p>
+            )}
+          </div>
         </CardContent>
 
         <CardFooter className="p-4 pt-0">

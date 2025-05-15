@@ -16,6 +16,10 @@ interface Product {
   category_id: string;
   slug: string;
   featured: boolean;
+  discount_percent?: number | null;
+  is_on_sale?: boolean;
+  sale_start_date?: string | null;
+  sale_end_date?: string | null;
 }
 
 export default function ProductDetailsPage() {

@@ -45,6 +45,10 @@ export interface Database {
           updated_at: string
           slug: string
           featured: boolean
+          discount_percent: number | null
+          is_on_sale: boolean
+          sale_start_date: string | null
+          sale_end_date: string | null
         }
         Insert: {
           id?: string
@@ -58,6 +62,10 @@ export interface Database {
           updated_at?: string
           slug: string
           featured?: boolean
+          discount_percent?: number | null
+          is_on_sale?: boolean
+          sale_start_date?: string | null
+          sale_end_date?: string | null
         }
         Update: {
           id?: string
@@ -71,6 +79,10 @@ export interface Database {
           updated_at?: string
           slug?: string
           featured?: boolean
+          discount_percent?: number | null
+          is_on_sale?: boolean
+          sale_start_date?: string | null
+          sale_end_date?: string | null
         }
       }
       orders: {
@@ -88,6 +100,8 @@ export interface Database {
           country: string
           payment_id?: string
           order_id?: string
+          coupon_id?: string
+          discount_amount?: number
         }
         Insert: {
           id?: string
@@ -103,6 +117,8 @@ export interface Database {
           country: string
           payment_id?: string
           order_id?: string
+          coupon_id?: string
+          discount_amount?: number
         }
         Update: {
           id?: string
@@ -118,6 +134,8 @@ export interface Database {
           country?: string
           payment_id?: string
           order_id?: string
+          coupon_id?: string
+          discount_amount?: number
         }
       }
       order_items: {
@@ -231,6 +249,70 @@ export interface Database {
           user_id?: string
           product_id?: string
           created_at?: string
+        }
+      }
+      coupons: {
+        Row: {
+          id: string
+          code: string
+          discount_type: string
+          discount_value: number
+          min_order_amount: number
+          expiry_date: string | null
+          is_active: boolean
+          usage_limit: number | null
+          usage_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          discount_type: string
+          discount_value: number
+          min_order_amount?: number
+          expiry_date?: string | null
+          is_active?: boolean
+          usage_limit?: number | null
+          usage_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          discount_type?: string
+          discount_value?: number
+          min_order_amount?: number
+          expiry_date?: string | null
+          is_active?: boolean
+          usage_limit?: number | null
+          usage_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      coupon_usage: {
+        Row: {
+          id: string
+          coupon_id: string
+          user_id: string
+          order_id: string
+          used_at: string
+        }
+        Insert: {
+          id?: string
+          coupon_id: string
+          user_id: string
+          order_id: string
+          used_at?: string
+        }
+        Update: {
+          id?: string
+          coupon_id?: string
+          user_id?: string
+          order_id?: string
+          used_at?: string
         }
       }
     }
