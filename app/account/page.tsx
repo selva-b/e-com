@@ -60,7 +60,7 @@ type PasswordFormValues = z.infer<typeof passwordSchema>;
 type AddressFormValues = z.infer<typeof addressSchema>;
 
 export default function AccountPage() {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isAdmin, isLoading } = useAuth();
   const [address, setAddress] = useState<AddressFormValues | null>(null);
   const [addressLoading, setAddressLoading] = useState(true);
   const { toast } = useToast();
@@ -163,10 +163,10 @@ export default function AccountPage() {
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.',
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error updating profile',
-        description: error.message,
+        description: error.message || 'Failed to update profile',
         variant: 'destructive',
       });
     }
@@ -190,10 +190,10 @@ export default function AccountPage() {
         title: 'Password updated',
         description: 'Your password has been updated successfully.',
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error updating password',
-        description: error.message,
+        description: error.message || 'Failed to update password',
         variant: 'destructive',
       });
     }
@@ -232,10 +232,10 @@ export default function AccountPage() {
       });
 
       fetchAddress();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error updating address',
-        description: error.message,
+        description: error.message || 'Failed to update address',
         variant: 'destructive',
       });
     }
@@ -491,19 +491,49 @@ export default function AccountPage() {
             <CardHeader>
               <CardTitle>Notification Settings</CardTitle>
               <CardDescription>
-                Manage your notification preferences
+                Manage your notification preferences here
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Push Notifications</h3>
-                <FirebasePushSubscriber />
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Push Notifications</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Push notifications allow us to send you important updates about your orders, account activity,
+                      and special promotions. You can receive these notifications even when you're not actively using our website.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-muted p-4 rounded-md">
+                    <div>
+                      <h4 className="font-medium">Enable Push Notifications</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Receive notifications about your orders and account
+                      </p>
+                    </div>
+                    <FirebasePushSubscriber />
+                  </div>
+
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground">
+                      To receive notifications, you need to:
+                    </p>
+                    <ol className="list-decimal pl-5 space-y-1 text-sm text-muted-foreground mt-2">
+                      <li>Enable push notifications using the toggle above</li>
+                      <li>Grant permission when prompted by your browser</li>
+                      <li>Make sure notifications are enabled in your browser settings</li>
+                    </ol>
+                  </div>
+                </div>
               </div>
 
-              <div className="pt-6 border-t">
-                <h3 className="text-lg font-medium mb-4">Test Your Notifications</h3>
-                <NotificationTester />
-              </div>
+              {isAdmin && (
+                <div className="pt-6 border-t">
+                  <h3 className="text-lg font-medium mb-4">Test Your Notifications (Admin Only)</h3>
+                  <NotificationTester />
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

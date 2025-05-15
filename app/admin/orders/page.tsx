@@ -44,17 +44,17 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const { toast } = useToast();
-  
+
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
       redirect('/login');
     }
   }, [user, isAdmin, isLoading]);
-  
+
   useEffect(() => {
     fetchOrders();
   }, []);
-  
+
   async function fetchOrders() {
     try {
       const { data, error } = await supabase
@@ -75,7 +75,7 @@ export default function OrdersPage() {
           )
         `)
         .order('created_at', { ascending: false });
-        
+
       if (error) throw error;
       setOrders(data);
     } catch (error) {
@@ -86,31 +86,40 @@ export default function OrdersPage() {
       });
     }
   }
-  
+
   async function updateOrderStatus(orderId: string, status: string) {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', orderId);
-        
-      if (error) throw error;
-      
+      // Use the API route to update status and send notifications
+      const response = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update order status');
+      }
+
       toast({
         title: 'Order status updated',
-        description: 'The order status has been updated successfully.',
+        description: 'The order status has been updated successfully and notifications sent.',
       });
-      
+
       fetchOrders();
     } catch (error) {
+      console.error('Error updating order status:', error);
       toast({
         title: 'Error updating order status',
-        description: error.message,
+        description: error.message || 'An error occurred while updating the order status',
         variant: 'destructive',
       });
     }
   }
-  
+
   function getStatusColor(status: string) {
     switch (status) {
       case 'pending':
@@ -127,17 +136,17 @@ export default function OrdersPage() {
         return 'bg-gray-500';
     }
   }
-  
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
-  
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Orders</h1>
       </div>
-      
+
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
@@ -218,7 +227,7 @@ export default function OrdersPage() {
                             <p>Total: ${order.total.toFixed(2)}</p>
                           </div>
                         </div>
-                        
+
                         <div>
                           <h3 className="font-semibold mb-2">Items</h3>
                           <Table>

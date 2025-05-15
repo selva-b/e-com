@@ -26,14 +26,21 @@ export const saveNotificationPreferences = async (
   try {
     const { error } = await supabase
       .from('notification_preferences')
-      .upsert([
+      .upsert(
+        [
+          {
+            user_id: userId,
+            email_enabled: preferences.email,
+            browser_enabled: preferences.browser,
+            push_enabled: preferences.push,
+            updated_at: new Date().toISOString(),
+          },
+        ],
         {
-          user_id: userId,
-          email_enabled: preferences.email,
-          browser_enabled: preferences.browser,
-          push_enabled: preferences.push,
-        },
-      ]);
+          onConflict: 'user_id',
+          ignoreDuplicates: false,
+        }
+      );
 
     if (error) throw error;
     return { success: true };
@@ -113,12 +120,12 @@ export const showBrowserNotification = async (
 
     // Show notification
     const notification = new Notification(title, options);
-    
+
     // Handle notification click
     notification.onclick = () => {
       window.focus();
       notification.close();
-      
+
       // Navigate to URL if provided
       if (options.data && options.data.url) {
         window.location.href = options.data.url;

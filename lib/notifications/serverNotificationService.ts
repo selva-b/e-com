@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import firebaseAdmin from '@/lib/firebase/firebaseAdmin';
+import firebaseAdmin from '@/lib/firebase/firebaseAdminWithServiceAccount';
 import { sendServerEmail } from '@/lib/email/serverEmailService';
 import { EmailTemplateType } from '@/lib/email/emailService';
 
@@ -118,32 +118,46 @@ export const sendServerPushNotification = async (
     };
 
     // Send notification using Firebase Admin
-    const response = await firebaseAdmin.messaging().sendMulticast(message);
+    const messaging = firebaseAdmin.messaging();
+    // @ts-ignore - sendMulticast exists but TypeScript doesn't recognize it
+    const response = await messaging.sendMulticast(message);
 
-    // Log notification in database
-    await supabase.from('notification_logs').insert([
-      {
-        user_id: userId,
-        title,
-        body,
-        type: 'push',
-        status: response.successCount > 0 ? 'sent' : 'failed',
-        success_count: response.successCount,
-        failure_count: response.failureCount,
-      },
-    ]);
+    // Log notification in database with error handling
+    try {
+      await supabase.from('notification_logs').insert([
+        {
+          user_id: userId,
+          title,
+          body,
+          type: 'push',
+          status: response.successCount > 0 ? 'sent' : 'failed',
+          success_count: response.successCount,
+          failure_count: response.failureCount,
+        },
+      ]);
+      console.log('Push notification logged successfully in notification_logs table');
+    } catch (logError) {
+      console.error('Error logging push notification in database:', logError);
+      // Continue execution even if logging fails
+    }
 
     // Save notification to database for later retrieval regardless of FCM success
-    await supabase.from('user_notifications').insert([
-      {
-        user_id: userId,
-        title,
-        body,
-        type: 'push',
-        data,
-        is_read: false,
-      },
-    ]);
+    try {
+      await supabase.from('user_notifications').insert([
+        {
+          user_id: userId,
+          title,
+          body,
+          type: 'push',
+          data,
+          is_read: false,
+        },
+      ]);
+      console.log('Push notification saved successfully to user_notifications table');
+    } catch (saveError) {
+      console.error('Error saving push notification to database:', saveError);
+      // Continue execution even if saving fails
+    }
 
     return {
       success: true,
@@ -157,17 +171,23 @@ export const sendServerPushNotification = async (
 
     const supabase = createClient();
 
-    // Log failed notification attempt
-    await supabase.from('notification_logs').insert([
-      {
-        user_id: userId,
-        title,
-        body,
-        type: 'push',
-        status: 'failed',
-        error_message: error.message,
-      },
-    ]);
+    // Log failed notification attempt with error handling
+    try {
+      await supabase.from('notification_logs').insert([
+        {
+          user_id: userId,
+          title,
+          body,
+          type: 'push',
+          status: 'failed',
+          error_message: error.message,
+        },
+      ]);
+      console.log('Failed push notification logged successfully in notification_logs table');
+    } catch (logError) {
+      console.error('Error logging failed push notification in database:', logError);
+      // Continue execution even if logging fails
+    }
 
     // Save notification to database for later retrieval even if FCM fails
     try {

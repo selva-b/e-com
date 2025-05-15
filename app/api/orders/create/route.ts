@@ -1,9 +1,58 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 import { sendServerNotification } from '@/lib/notifications/serverNotificationService';
+
+// Helper function to send low inventory notifications to admin users
+async function sendLowInventoryNotification(productId: string, productName: string, currentInventory: number) {
+  try {
+    const supabase = createClient();
+
+    // Get all admin users
+    const { data: adminUsers, error: adminError } = await supabase
+      .from('profiles')
+      .select('id, email, first_name, last_name')
+      .eq('role', 'admin');
+
+    if (adminError) {
+      console.error('Error fetching admin users for inventory notification:', adminError);
+      return;
+    }
+
+    if (!adminUsers || adminUsers.length === 0) {
+      console.log('No admin users found to notify about low inventory');
+      return;
+    }
+
+    // Send notification to each admin
+    for (const admin of adminUsers) {
+      await sendServerNotification({
+        userId: admin.id,
+        title: 'Low Inventory Alert',
+        body: `Product "${productName}" (ID: ${productId}) has low inventory: ${currentInventory} items remaining.`,
+        type: 'stock_alert',
+        data: {
+          product_id: productId,
+          product_name: productName,
+          inventory_count: currentInventory.toString(),
+          url: `/admin/products/${productId}/edit`,
+        },
+        email: true,
+        push: true,
+      });
+    }
+
+    console.log(`Low inventory notifications sent to ${adminUsers.length} admin users for product ${productId}`);
+  } catch (error) {
+    console.error('Error sending low inventory notifications:', error);
+    // Continue with order creation even if notification fails
+  }
+}
 
 export async function POST(request: Request) {
   try {
+    // Create server-side Supabase client with admin privileges
+    const supabase = createClient();
+
     const body = await request.json();
     const {
       userId,
@@ -76,21 +125,96 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update product inventory
-    console.log('Updating product inventory...');
+    // Update product inventory - USING SERVER-SIDE CLIENT WITH ADMIN PRIVILEGES
+    console.log('Updating product inventory with server-side client...');
+    console.log('Order items:', JSON.stringify(items, null, 2));
 
+    // Process each item in the order
     for (const item of items) {
-      const { error: inventoryError } = await supabase
-        .from('products')
-        .update({
-          inventory_count: item.inventory_count - item.quantity
-        })
-        .eq('id', item.id);
+      try {
+        console.log(`Processing item: ${item.id}, quantity: ${item.quantity}`);
 
-      if (inventoryError) {
-        console.error(`Error updating inventory for product ${item.id}:`, inventoryError);
-      } else {
-        console.log(`Updated inventory for product ${item.id}: new count = ${item.inventory_count - item.quantity}`);
+        // 1. First get the current inventory for this product
+        const { data: product, error: fetchError } = await supabase
+          .from('products')
+          .select('id, name, inventory_count')
+          .eq('id', item.id)
+          .single();
+
+        if (fetchError) {
+          console.error(`Error fetching product ${item.id}:`, fetchError);
+          console.error(`Error details:`, JSON.stringify(fetchError));
+          continue; // Skip to next item
+        }
+
+        if (!product) {
+          console.error(`Product ${item.id} not found in database`);
+          continue; // Skip to next item
+        }
+
+        console.log(`Current inventory for ${product.name} (${product.id}): ${product.inventory_count}`);
+
+        // 2. Calculate new inventory count
+        const newInventory = Math.max(0, product.inventory_count - item.quantity);
+        console.log(`Calculating new inventory: ${product.inventory_count} - ${item.quantity} = ${newInventory}`);
+
+        // 3. Update the inventory in the database - CRITICAL SECTION
+        console.log(`🔄 UPDATING INVENTORY IN DATABASE: Setting product ${product.id} inventory to ${newInventory}`);
+
+        // Use raw SQL for direct update to bypass any potential RLS issues
+        const { data: updateResult, error: updateError } = await supabase
+          .rpc('update_product_inventory', {
+            product_id: item.id,
+            new_inventory: newInventory
+          });
+
+        if (updateError) {
+          console.error(`Error updating inventory for product ${item.id}:`, updateError);
+          console.error(`Error details:`, JSON.stringify(updateError));
+
+          // Fallback to direct update if RPC fails
+          console.log(`Attempting fallback direct update for product ${item.id}...`);
+          const { data: fallbackResult, error: fallbackError } = await supabase
+            .from('products')
+            .update({ inventory_count: newInventory })
+            .eq('id', item.id)
+            .select('inventory_count');
+
+          if (fallbackError) {
+            console.error(`Fallback update also failed for product ${item.id}:`, fallbackError);
+            console.error(`Fallback error details:`, JSON.stringify(fallbackError));
+          } else {
+            console.log(`✅ Fallback update successful for product ${item.id}:`, fallbackResult);
+          }
+        } else {
+          console.log(`✅ Successfully updated inventory for ${product.name} (${product.id}): ${product.inventory_count} -> ${newInventory}`);
+          console.log(`Database response:`, updateResult);
+
+          // 4. Check if inventory is low and send notification if needed
+          if (newInventory <= 5) {
+            console.log(`Low inventory alert for product ${item.id}: ${newInventory} items remaining`);
+            await sendLowInventoryNotification(item.id, product.name, newInventory);
+          }
+        }
+
+        // 5. Verify the update was successful
+        const { data: verifyProduct, error: verifyError } = await supabase
+          .from('products')
+          .select('id, name, inventory_count')
+          .eq('id', item.id)
+          .single();
+
+        if (verifyError) {
+          console.error(`Error verifying inventory update for product ${item.id}:`, verifyError);
+        } else if (verifyProduct) {
+          console.log(`✓ Verification: Product ${verifyProduct.name} (${verifyProduct.id}) now has inventory: ${verifyProduct.inventory_count}`);
+          if (verifyProduct.inventory_count !== newInventory) {
+            console.error(`⚠️ INVENTORY MISMATCH: Expected ${newInventory}, but found ${verifyProduct.inventory_count}`);
+          }
+        }
+      } catch (error) {
+        console.error(`Unexpected error processing inventory for item ${item.id}:`, error);
+        // Continue with next item even if this one fails
       }
     }
 

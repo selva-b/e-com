@@ -71,13 +71,25 @@ export default function FirebasePushSubscriber() {
         // Continue with browser notifications only
       }
 
+      // Get current preferences to preserve other settings
+      const { data: existingPrefs } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
       // Save notification preferences
       const { saveNotificationPreferences } = await import('@/lib/notifications/fallbackNotificationService');
-      await saveNotificationPreferences(user.id, {
-        email: true,
+      const prefResult = await saveNotificationPreferences(user.id, {
+        email: existingPrefs?.email_enabled ?? true,
         browser: Notification.permission === 'granted',
         push: !!token,
       });
+
+      if (!prefResult.success) {
+        console.error('Error saving notification preferences:', prefResult.error);
+        // Continue anyway, we'll try to save the token
+      }
 
       // If we got an FCM token, save it
       if (token) {
@@ -155,13 +167,29 @@ export default function FirebasePushSubscriber() {
         // Continue anyway
       }
 
+      // Get current preferences to preserve other settings
+      const { data: existingPrefs } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
       // Update notification preferences
       const { saveNotificationPreferences } = await import('@/lib/notifications/fallbackNotificationService');
-      await saveNotificationPreferences(user.id, {
-        email: true, // Keep email notifications enabled
+      const result = await saveNotificationPreferences(user.id, {
+        email: existingPrefs?.email_enabled ?? true, // Keep email notifications enabled
         browser: false,
         push: false,
       });
+
+      if (!result.success) {
+        console.error('Error updating notification preferences:', result.error);
+        toast.toast({
+          title: 'Error',
+          description: 'Failed to update notification preferences, but tokens were removed',
+          variant: 'destructive',
+        });
+      }
 
       setIsSubscribed(false);
       toast.toast({
@@ -195,18 +223,18 @@ export default function FirebasePushSubscriber() {
           className="flex items-center gap-2"
         >
           <BellOff className="h-4 w-4" />
-          {isLoading ? 'Disabling...' : 'Disable Notifications'}
+          {isLoading ? 'Disabling...' : 'Disable'}
         </Button>
       ) : (
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           onClick={subscribeToNotifications}
           disabled={isLoading}
           className="flex items-center gap-2"
         >
           <Bell className="h-4 w-4" />
-          {isLoading ? 'Enabling...' : 'Enable Notifications'}
+          {isLoading ? 'Enabling...' : 'Enable'}
         </Button>
       )}
     </div>
