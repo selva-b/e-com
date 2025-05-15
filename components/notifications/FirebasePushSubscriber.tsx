@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Bell, BellOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { requestNotificationPermission } from '@/lib/firebase/firebaseConfig';
+import { requestNotificationPermission } from '@/lib/firebase/firebaseInit';
 
 export default function FirebasePushSubscriber() {
   const { user } = useAuth();
@@ -50,41 +50,87 @@ export default function FirebasePushSubscriber() {
 
     try {
       setIsLoading(true);
+      console.log('Requesting notification permission...');
 
-      // Request permission and get FCM token
-      const token = await requestNotificationPermission();
-
-      if (!token) {
-        throw new Error('Failed to get notification permission or FCM token');
+      // First try to get permission for browser notifications
+      if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          console.log('Browser notification permission granted');
+        } else {
+          console.log('Browser notification permission denied');
+        }
       }
 
-      // Save the token to the database
-      const { error } = await supabase
-        .from('firebase_tokens')
-        .insert([
-          {
-            user_id: user.id,
-            token,
-            device_info: {
-              userAgent: navigator.userAgent,
-              platform: navigator.platform,
-              language: navigator.language,
-            },
-          },
-        ]);
+      // Try to get FCM token
+      let token = null;
+      try {
+        token = await requestNotificationPermission();
+      } catch (fcmError) {
+        console.error('Error getting FCM token:', fcmError);
+        // Continue with browser notifications only
+      }
 
-      if (error) throw error;
-
-      setIsSubscribed(true);
-      toast.toast({
-        title: 'Notifications Enabled',
-        description: 'You will now receive push notifications for important updates.',
+      // Save notification preferences
+      const { saveNotificationPreferences } = await import('@/lib/notifications/fallbackNotificationService');
+      await saveNotificationPreferences(user.id, {
+        email: true,
+        browser: Notification.permission === 'granted',
+        push: !!token,
       });
+
+      // If we got an FCM token, save it
+      if (token) {
+        console.log('FCM token received, saving to database...');
+
+        // Save the token to the database
+        const { error } = await supabase
+          .from('firebase_tokens')
+          .insert([
+            {
+              user_id: user.id,
+              token,
+              device_info: {
+                userAgent: navigator.userAgent,
+                platform: navigator.userAgent.includes('Win') ? 'Windows' :
+                          navigator.userAgent.includes('Mac') ? 'MacOS' :
+                          navigator.userAgent.includes('Linux') ? 'Linux' : 'Unknown',
+                language: navigator.language,
+              },
+            },
+          ]);
+
+        if (error) {
+          console.error('Supabase error saving token:', error);
+          // Continue anyway, we'll use browser notifications
+        } else {
+          console.log('FCM token saved successfully');
+        }
+      } else {
+        console.log('No FCM token available, using browser notifications only');
+      }
+
+      // Mark as subscribed if either FCM or browser notifications are enabled
+      const isNotificationsEnabled = !!token || Notification.permission === 'granted';
+      setIsSubscribed(isNotificationsEnabled);
+
+      if (isNotificationsEnabled) {
+        toast.toast({
+          title: 'Notifications Enabled',
+          description: 'You will now receive notifications for important updates.',
+        });
+      } else {
+        toast.toast({
+          title: 'Notifications Limited',
+          description: 'Notifications may be limited. Please check your browser settings.',
+          variant: 'destructive',
+        });
+      }
     } catch (error: any) {
-      console.error('Error subscribing to push notifications:', error);
+      console.error('Error setting up notifications:', error);
       toast.toast({
-        title: 'Subscription Failed',
-        description: error.message || 'Failed to enable push notifications. Please try again.',
+        title: 'Notification Setup Issue',
+        description: 'We encountered an issue setting up notifications. Email notifications will still work.',
         variant: 'destructive',
       });
     } finally {
@@ -104,18 +150,29 @@ export default function FirebasePushSubscriber() {
         .delete()
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting FCM tokens:', error);
+        // Continue anyway
+      }
+
+      // Update notification preferences
+      const { saveNotificationPreferences } = await import('@/lib/notifications/fallbackNotificationService');
+      await saveNotificationPreferences(user.id, {
+        email: true, // Keep email notifications enabled
+        browser: false,
+        push: false,
+      });
 
       setIsSubscribed(false);
       toast.toast({
         title: 'Notifications Disabled',
-        description: 'You will no longer receive push notifications.',
+        description: 'You will no longer receive push notifications. Email notifications will still be sent.',
       });
     } catch (error: any) {
-      console.error('Error unsubscribing from push notifications:', error);
+      console.error('Error unsubscribing from notifications:', error);
       toast.toast({
         title: 'Unsubscribe Failed',
-        description: error.message || 'Failed to disable push notifications. Please try again.',
+        description: error.message || 'Failed to disable notifications. Please try again.',
         variant: 'destructive',
       });
     } finally {

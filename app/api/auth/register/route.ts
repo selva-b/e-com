@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
-import { sendEmail } from '@/lib/email/emailService';
 
 // Handle user registration and send welcome email
 export async function POST(request: Request) {
@@ -49,37 +48,48 @@ export async function POST(request: Request) {
         );
       }
 
-      // Send welcome email
-      await sendEmail({
-        to: email,
-        subject: 'Welcome to E-com',
-        templateType: 'registration',
-        variables: {
-          first_name: firstName,
-          last_name: lastName,
-        },
-      });
+      // Send welcome email using server-side email service
+      try {
+        const { sendServerEmail } = await import('@/lib/email/serverEmailService');
 
-      // Notify admin about new registration
-      const { data: adminData, error: adminError } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('role', 'admin');
+        await sendServerEmail({
+          to: email,
+          subject: 'Welcome to E-com',
+          templateType: 'registration',
+          variables: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+        });
 
-      if (!adminError && adminData && adminData.length > 0) {
-        // Send email to all admins
-        for (const admin of adminData) {
-          await sendEmail({
-            to: admin.email,
-            subject: 'New User Registration',
-            templateType: 'customer_signups',
-            variables: {
-              customer_name: `${firstName} ${lastName}`,
-              customer_email: email,
-              registration_date: new Date().toLocaleDateString(),
-            },
-          });
+        console.log('Welcome email sent to:', email);
+
+        // Notify admin about new registration
+        const { data: adminData, error: adminError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('role', 'admin');
+
+        if (!adminError && adminData && adminData.length > 0) {
+          // Send email to all admins
+          for (const admin of adminData) {
+            await sendServerEmail({
+              to: admin.email,
+              subject: 'New User Registration',
+              templateType: 'customer_signups',
+              variables: {
+                customer_name: `${firstName} ${lastName}`,
+                customer_email: email,
+                registration_date: new Date().toLocaleDateString(),
+              },
+            });
+
+            console.log('Admin notification email sent to:', admin.email);
+          }
         }
+      } catch (emailError) {
+        console.error('Error sending registration emails:', emailError);
+        // Continue with registration even if email sending fails
       }
 
       return NextResponse.json({

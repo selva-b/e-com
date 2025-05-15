@@ -1,6 +1,38 @@
-// Firebase configuration
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+'use client';
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDScqhttw8arTOYIzG6gaUs4L4sFmpFP7U",
+  authDomain: "e-com-55bec.firebaseapp.com",
+  projectId: "e-com-55bec",
+  storageBucket: "e-com-55bec.firebasestorage.app",
+  messagingSenderId: "495288878612",
+  appId: "1:495288878612:web:1c5a20695221bf9ec48901",
+  measurementId: "G-568ENVE6HG"
+};
+
+// Initialize Firebase
+let app;
+let analytics;
+
+// Only initialize Firebase in the browser
+if (typeof window !== 'undefined') {
+  try {
+    app = initializeApp(firebaseConfig);
+    // Only initialize analytics in production
+    if (process.env.NODE_ENV === 'production') {
+      analytics = getAnalytics(app);
+    }
+    console.log('Firebase initialized successfully with new configuration');
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+  }
+}
 
 // Messaging imports are conditionally loaded in browser environment
 let messaging: any;
@@ -17,46 +49,13 @@ if (typeof window !== 'undefined') {
       messaging = getMessaging;
       getToken = getTokenFn;
       onMessage = onMessageFn;
-      console.log('Firebase messaging loaded successfully');
+      console.log('Firebase messaging loaded successfully with new configuration');
     })
     .catch(err => {
       console.error('Error importing Firebase messaging:', err);
       // Re-throw to allow catching this error elsewhere
       throw err;
     });
-}
-
-// Firebase configuration
-// Using the exact configuration from Firebase console
-const firebaseConfig = {
-  apiKey: "AIzaSyDScqhttw8arTOYIzG6gaUs4L4sFmpFP7U",
-  authDomain: "e-com-55bec.firebaseapp.com",
-  projectId: "e-com-55bec",
-  storageBucket: "e-com-55bec.firebasestorage.app", // Using the exact value from Firebase console
-  messagingSenderId: "495288878612",
-  appId: "1:495288878612:web:1c5a20695221bf9ec48901",
-  measurementId: "G-568ENVE6HG",
-};
-
-// Check if Firebase is configured
-const isFirebaseConfigured =
-  firebaseConfig.apiKey &&
-  firebaseConfig.projectId &&
-  firebaseConfig.messagingSenderId &&
-  firebaseConfig.appId;
-
-// Initialize Firebase
-let app;
-let db;
-
-try {
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  db = getFirestore(app);
-  console.log('Firebase initialized successfully');
-} catch (error) {
-  console.error('Firebase initialization error:', error);
-  app = null;
-  db = null;
 }
 
 // Request permission and get FCM token
@@ -117,12 +116,11 @@ export const requestNotificationPermission = async () => {
 
     // Get FCM token
     console.log('Getting FCM token...');
-
+    
     // Use a valid VAPID key from Firebase console
-    // Note: We're using a hardcoded key for development purposes
     const vapidKey = 'BPQYoTQlsJQeGnCB9mJwuT_We_5RQlRYXUmcCgZrUJgGUZrTvYxjI6GGpqNKjIJCGC_Z_Vg8eUJtQHjrLmjFV-A';
     console.log('Using VAPID key:', vapidKey);
-
+    
     // Get service worker registration
     let swRegistration;
     try {
@@ -134,10 +132,10 @@ export const requestNotificationPermission = async () => {
     } catch (swError) {
       console.error('Error getting service worker registration:', swError);
     }
-
+    
     // Try to get token with different configurations
     let currentToken = null;
-
+    
     try {
       // First attempt: with service worker registration
       if (swRegistration) {
@@ -150,7 +148,7 @@ export const requestNotificationPermission = async () => {
     } catch (error) {
       console.error('Error getting token with service worker registration:', error);
     }
-
+    
     // If first attempt failed, try without service worker registration
     if (!currentToken) {
       try {
@@ -213,4 +211,4 @@ export const onMessageListener = async () => {
   }
 };
 
-export { app, db };
+export { app, analytics };

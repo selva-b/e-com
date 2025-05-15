@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Lock, MapPin, Bell } from 'lucide-react';
 import FirebasePushSubscriber from '@/components/notifications/FirebasePushSubscriber';
+import NotificationTester from '@/components/notifications/NotificationTester';
 
 const profileSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
@@ -257,11 +258,10 @@ export default function AccountPage() {
     <div className="container max-w-4xl mx-auto py-16 px-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">My Account</h1>
-        <FirebasePushSubscriber />
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" /> Profile
           </TabsTrigger>
@@ -270,6 +270,9 @@ export default function AccountPage() {
           </TabsTrigger>
           <TabsTrigger value="address" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" /> Address
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" /> Notifications
           </TabsTrigger>
         </TabsList>
 
@@ -479,6 +482,28 @@ export default function AccountPage() {
                   </form>
                 </Form>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Settings</CardTitle>
+              <CardDescription>
+                Manage your notification preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Push Notifications</h3>
+                <FirebasePushSubscriber />
+              </div>
+
+              <div className="pt-6 border-t">
+                <h3 className="text-lg font-medium mb-4">Test Your Notifications</h3>
+                <NotificationTester />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

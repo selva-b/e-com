@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
-import { sendNotification } from '@/lib/notifications/notificationService';
+import { sendServerNotification } from '@/lib/notifications/serverNotificationService';
 
 // Update order status and send notifications
 export async function PUT(
@@ -19,12 +19,13 @@ export async function PUT(
       );
     }
 
+
     // Update order status
     const { data: order, error: updateError } = await supabase
       .from('orders')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', orderId)
-      .select('*, profiles(*)')
+      .select('*')
       .single();
 
     if (updateError) throw updateError;
@@ -36,8 +37,11 @@ export async function PUT(
       );
     }
 
+    console.log('Order status updated to:', status);
+    console.log('Sending notification for order:', orderId);
+
     // Send notification to customer
-    const notificationResult = await sendNotification({
+    const notificationResult = await sendServerNotification({
       userId: order.user_id,
       title: `Order ${status}`,
       body: `Your order #${orderId} has been ${status}.`,
@@ -51,15 +55,17 @@ export async function PUT(
       push: true,
     });
 
+    console.log('Notification result:', notificationResult);
+
     return NextResponse.json({
       success: true,
       order,
       notification: notificationResult,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating order status:', error);
     return NextResponse.json(
-      { error: 'Failed to update order status' },
+      { error: error.message || 'Failed to update order status' },
       { status: 500 }
     );
   }

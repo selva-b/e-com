@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { onMessageListener } from '@/lib/firebase/firebaseConfig';
+import { onMessageListener } from '@/lib/firebase/firebaseInit';
 import { useToast } from '@/hooks/use-toast';
 
 type NotificationContextType = {

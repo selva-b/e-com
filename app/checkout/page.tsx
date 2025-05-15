@@ -42,31 +42,31 @@ interface Address {
 
 export default function CheckoutPage() {
   const { user, profile, isLoading } = useAuth();
-  const { 
-    cart, 
-    cartTotal, 
-    clearCart, 
+  const {
+    cart,
+    cartTotal,
+    clearCart,
     removeSelectedItems,
-    checkInventory, 
+    checkInventory,
     hasOutOfStockItems,
-    isInventoryChecked 
+    isInventoryChecked
   } = useCartContext();
-  
+
   // Get selected items from URL
   const searchParams = useSearchParams();
   const selectedItemIds = searchParams.get('items')?.split(',') || [];
-  
+
   // Filter cart to only include selected items
   const selectedItems = cart.filter(item => selectedItemIds.includes(item.id));
-  
+
   // Calculate total for selected items only
   const selectedItemsTotal = selectedItems.reduce(
     (total, item) => total + item.price * item.quantity, 0
   );
-  
+
   // Check if any selected items have insufficient stock
   const hasSelectedOutOfStock = selectedItems.some(item => item.isOutOfStock);
-  
+
   const [address, setAddress] = useState<Address | null>(null);
   const [addressLoading, setAddressLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -138,7 +138,7 @@ export default function CheckoutPage() {
 
   async function fetchAddress() {
     if (!user) return;
-    
+
     try {
       setAddressLoading(true);
       const { data, error } = await supabase
@@ -147,11 +147,11 @@ export default function CheckoutPage() {
         .eq('user_id', user.id)
         .eq('is_default', true)
         .single();
-      
+
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
-      
+
       if (data) {
         setAddress(data);
         form.reset({
@@ -171,22 +171,22 @@ export default function CheckoutPage() {
 
   async function onSubmit(data: CheckoutFormValues) {
     if (!user) return;
-    
+
     try {
       setProcessingPayment(true);
-      
+
       // CRITICAL: Check inventory right before proceeding to payment
       toast({
         title: "Checking Inventory",
         description: "Verifying product availability before proceeding...",
       });
-      
+
       await checkInventory();
-      
+
       // Check if any selected items have insufficient stock after inventory check
       const updatedSelectedItems = cart.filter(item => selectedItemIds.includes(item.id));
       const hasUpdatedOutOfStock = updatedSelectedItems.some(item => item.isOutOfStock);
-      
+
       // If any items have quantity > inventory, prevent payment
       if (hasUpdatedOutOfStock) {
         toast({
@@ -198,18 +198,18 @@ export default function CheckoutPage() {
         router.push('/cart');
         return;
       }
-      
+
       // Inventory check passed, proceed with payment
       toast({
         title: "Inventory Verified",
         description: "All selected items are in stock. Proceeding to payment...",
       });
-      
+
       // For demo purposes, we'll create a simulated order ID
       // In a production environment, you would create an order via Razorpay's API
       const orderId = `order_${Date.now()}`;
       const amount = Math.round(selectedItemsTotal * 100); // Razorpay expects amount in paise
-      
+
       // Initialize Razorpay payment
       if (typeof window.Razorpay !== 'undefined') {
         const options = {
@@ -236,7 +236,7 @@ export default function CheckoutPage() {
             color: '#3B82F6',
           },
         };
-        
+
         const razorpay = new window.Razorpay(options);
         razorpay.on('payment.failed', function(response: any) {
           handlePaymentFailure(response);
@@ -260,16 +260,16 @@ export default function CheckoutPage() {
     }
   }
 
-  async function handlePaymentSuccess(response: any, addressData: CheckoutFormValues) {
+  async function handlePaymentSuccess(paymentResponse: any, addressData: CheckoutFormValues) {
     try {
       // Final inventory check before creating the order
       // This is critical to ensure inventory hasn't changed during payment
       await checkInventory();
-      
+
       // Check if any selected items have insufficient stock after final inventory check
       const finalSelectedItems = cart.filter(item => selectedItemIds.includes(item.id));
       const hasFinalOutOfStock = finalSelectedItems.some(item => item.isOutOfStock);
-      
+
       if (hasFinalOutOfStock) {
         toast({
           title: "Inventory Issue",
@@ -279,61 +279,40 @@ export default function CheckoutPage() {
         router.push('/order-failure');
         return;
       }
-      
-      // Create order in database
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert([{
-          user_id: user?.id,
-          status: 'processing',
+
+      // Use the new API route to create the order and send notifications
+      const apiResponse = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user?.id,
+          items: selectedItems,
           total: selectedItemsTotal,
           address: addressData.address,
           city: addressData.city,
           state: addressData.state,
-          postal_code: addressData.postal_code,
+          postalCode: addressData.postal_code,
           country: addressData.country,
-          payment_id: response.razorpay_payment_id || `payment_${Date.now()}`,
-          order_id: response.razorpay_order_id || `order_${Date.now()}`,
-        }])
-        .select('id')
-        .single();
-      
-      if (orderError) throw orderError;
-      
-      // Create order items only for selected items
-      const orderItems = selectedItems.map(item => ({
-        order_id: orderData.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        price: item.price,
-      }));
-      
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-      
-      if (itemsError) throw itemsError;
-      
-      // Update product inventory in a single batch operation for selected items only
-      for (const item of selectedItems) {
-        const { error: inventoryError } = await supabase
-          .from('products')
-          .update({ 
-            inventory_count: item.inventory_count - item.quantity 
-          })
-          .eq('id', item.id);
-        
-        if (inventoryError) {
-          console.error(`Error updating inventory for product ${item.id}:`, inventoryError);
-        }
+          paymentId: paymentResponse.razorpay_payment_id || `payment_${Date.now()}`,
+          orderId: paymentResponse.razorpay_order_id || `order_${Date.now()}`,
+        }),
+      });
+
+      const result = await apiResponse.json();
+
+      if (!apiResponse.ok) {
+        throw new Error(result.error || 'Failed to create order');
       }
-      
+
       // Remove only the selected items from the cart
       removeSelectedItems(selectedItemIds);
-      
+
       // Redirect to success page
-      router.push(`/order-success?id=${orderData.id}`);
+      router.push(`/order-success?id=${result.orderId}`);
     } catch (error: any) {
+      console.error('Order creation error:', error);
       toast({
         title: 'Order Error',
         description: error.message || 'Failed to create order',
@@ -370,10 +349,10 @@ export default function CheckoutPage() {
         src="https://checkout.razorpay.com/v1/checkout.js"
         onLoad={() => setRazorpayLoaded(true)}
       />
-      
+
       <div className="container max-w-4xl mx-auto py-16 px-4">
         <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
             <Card>
@@ -399,7 +378,7 @@ export default function CheckoutPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -428,7 +407,7 @@ export default function CheckoutPage() {
                         )}
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -457,10 +436,10 @@ export default function CheckoutPage() {
                         )}
                       />
                     </div>
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full mt-6" 
+
+                    <Button
+                      type="submit"
+                      className="w-full mt-6"
                       disabled={processingPayment || !razorpayLoaded || hasSelectedOutOfStock}
                     >
                       {processingPayment ? (
@@ -479,7 +458,7 @@ export default function CheckoutPage() {
               </CardContent>
             </Card>
           </div>
-          
+
           <div>
             <Card>
               <CardHeader>

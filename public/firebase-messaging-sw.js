@@ -1,10 +1,11 @@
 // Firebase Cloud Messaging Service Worker
 
 // Import and configure the Firebase SDK
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+// Using the latest version of Firebase
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
-// Firebase configuration
+// Firebase configuration - exact match from Firebase console
 const firebaseConfig = {
   apiKey: "AIzaSyDScqhttw8arTOYIzG6gaUs4L4sFmpFP7U",
   authDomain: "e-com-55bec.firebaseapp.com",

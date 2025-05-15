@@ -86,6 +86,8 @@ export interface Database {
           state: string
           postal_code: string
           country: string
+          payment_id?: string
+          order_id?: string
         }
         Insert: {
           id?: string
@@ -99,6 +101,8 @@ export interface Database {
           state: string
           postal_code: string
           country: string
+          payment_id?: string
+          order_id?: string
         }
         Update: {
           id?: string
@@ -112,6 +116,8 @@ export interface Database {
           state?: string
           postal_code?: string
           country?: string
+          payment_id?: string
+          order_id?: string
         }
       }
       order_items: {
