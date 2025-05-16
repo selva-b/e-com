@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/generate-firebase-sw.js && next build",
+    "build": "node scripts/generate-firebase-sw.js && node scripts/generate-pwa-icons.js && next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-firebase-sw": "node scripts/generate-firebase-sw.js"
+    "generate-firebase-sw": "node scripts/generate-firebase-sw.js",
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.js",
+    "pwa-setup": "npm run generate-firebase-sw && npm run generate-pwa-icons"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
