@@ -88,6 +88,81 @@ self.addEventListener('fetch', (event) => {
   // Handle API requests differently - Network first, then offline fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
+      fetch(event.request.clone(), {
+        // Add credentials to ensure cookies are sent with the request
+        credentials: 'include',
+        // Add cache control headers to prevent caching issues
+        headers: {
+          ...Object.fromEntries(event.request.headers.entries()),
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
+      .then((response) => {
+        // Only cache successful responses
+        if (response.ok) {
+          // Clone the response to store in cache
+          const clonedResponse = response.clone();
+
+          caches.open(DYNAMIC_CACHE_NAME)
+            .then((cache) => {
+              // Don't cache if response contains no-store in Cache-Control header
+              const cacheControl = response.headers.get('Cache-Control') || '';
+              if (!cacheControl.includes('no-store')) {
+                cache.put(event.request, clonedResponse);
+              }
+            });
+        }
+
+        return response;
+      })
+      .catch((error) => {
+        console.error('[Service Worker] API fetch error:', error);
+
+        // Report the error to the client
+        reportApiError(error);
+
+        // If offline, try to get from cache
+        return caches.match(event.request)
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              // Add a header to indicate this is from cache
+              const headers = new Headers(cachedResponse.headers);
+              headers.append('X-From-Service-Worker-Cache', 'true');
+
+              // Create a new response with the modified headers
+              return new Response(cachedResponse.body, {
+                status: cachedResponse.status,
+                statusText: cachedResponse.statusText,
+                headers: headers
+              });
+            }
+
+            // If not in cache, return offline JSON for API
+            return new Response(
+              JSON.stringify({
+                error: 'You are offline. Please check your connection.',
+                fromServiceWorker: true
+              }),
+              {
+                status: 503,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Cache-Control': 'no-store',
+                  'X-From-Service-Worker': 'true'
+                }
+              }
+            );
+          });
+      })
+    );
+    return;
+  }
+
+  // For page navigations - Network first, then cache fallback for better user experience
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
       fetch(event.request)
         .then((response) => {
           // Clone the response to store in cache
@@ -95,58 +170,26 @@ self.addEventListener('fetch', (event) => {
 
           caches.open(DYNAMIC_CACHE_NAME)
             .then((cache) => {
-              cache.put(event.request, clonedResponse);
+              // Don't cache if response contains no-store in Cache-Control header
+              const cacheControl = response.headers.get('Cache-Control') || '';
+              if (!cacheControl.includes('no-store')) {
+                cache.put(event.request, clonedResponse);
+              }
             });
 
           return response;
         })
-        .catch(() => {
-          // If offline, try to get from cache
+        .catch((error) => {
+          console.error('[Service Worker] Navigation fetch error:', error);
+
+          // If network request fails, try to get from cache
           return caches.match(event.request)
             .then((cachedResponse) => {
               if (cachedResponse) {
                 return cachedResponse;
               }
 
-              // If not in cache, return offline JSON for API
-              return new Response(
-                JSON.stringify({
-                  error: 'You are offline. Please check your connection.'
-                }),
-                {
-                  status: 503,
-                  headers: { 'Content-Type': 'application/json' }
-                }
-              );
-            });
-        })
-    );
-    return;
-  }
-
-  // For page navigations - Cache first, then network with offline fallback
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      caches.match(event.request)
-        .then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-
-          return fetch(event.request)
-            .then((response) => {
-              // Clone the response to store in cache
-              const clonedResponse = response.clone();
-
-              caches.open(DYNAMIC_CACHE_NAME)
-                .then((cache) => {
-                  cache.put(event.request, clonedResponse);
-                });
-
-              return response;
-            })
-            .catch(() => {
-              // If offline and not in cache, show offline page
+              // If not in cache, show offline page
               return caches.match(OFFLINE_PAGE);
             });
         })
@@ -154,26 +197,45 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For other assets - Stale-while-revalidate strategy
+  // For other assets - Stale-while-revalidate strategy with improved error handling
   event.respondWith(
     caches.match(event.request)
       .then((cachedResponse) => {
-        // Return cached response immediately
-        const fetchPromise = fetch(event.request)
+        // Create a fetch promise for the network request
+        const fetchPromise = fetch(event.request.clone())
           .then((networkResponse) => {
-            // Update the cache with the new response
-            caches.open(DYNAMIC_CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, networkResponse.clone());
-              });
+            // Only cache successful responses
+            if (networkResponse.ok) {
+              // Update the cache with the new response
+              caches.open(DYNAMIC_CACHE_NAME)
+                .then((cache) => {
+                  // Don't cache if response contains no-store in Cache-Control header
+                  const cacheControl = networkResponse.headers.get('Cache-Control') || '';
+                  if (!cacheControl.includes('no-store')) {
+                    cache.put(event.request, networkResponse.clone());
+                  }
+                });
+            }
             return networkResponse;
           })
-          .catch(() => {
-            // If fetch fails, we already returned the cached response or will fall back
-            console.log('[Service Worker] Fetch failed, already returned cache or falling back');
+          .catch((error) => {
+            console.error('[Service Worker] Fetch failed:', error);
+            // If fetch fails and we don't have a cached response, throw to trigger fallback
+            if (!cachedResponse) {
+              throw error;
+            }
           });
 
+        // Return cached response immediately if available, otherwise wait for network
         return cachedResponse || fetchPromise;
+      })
+      .catch((error) => {
+        console.error('[Service Worker] Both cache and fetch failed:', error);
+        // If both cache and network fail, return a simple error response
+        return new Response('Network error occurred. Please try again later.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain' }
+        });
       })
   );
 });
@@ -232,3 +294,43 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+// Handle messages from clients
+self.addEventListener('message', (event) => {
+  console.log('[Service Worker] Received message:', event.data);
+
+  if (event.data && event.data.type === 'PERIODIC_UPDATE') {
+    // Clear certain caches to ensure fresh content
+    caches.open(DYNAMIC_CACHE_NAME)
+      .then((cache) => {
+        // Get all cache keys
+        return cache.keys()
+          .then((requests) => {
+            // Filter API requests
+            const apiRequests = requests.filter(request =>
+              request.url.includes('/api/')
+            );
+
+            // Delete API cache entries to ensure fresh data
+            return Promise.all(
+              apiRequests.map(request => cache.delete(request))
+            );
+          });
+      })
+      .catch(error => {
+        console.error('[Service Worker] Cache cleanup error:', error);
+      });
+  }
+});
+
+// Report API errors to the client
+const reportApiError = (error) => {
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'API_ERROR',
+        error: error.toString()
+      });
+    });
+  });
+};

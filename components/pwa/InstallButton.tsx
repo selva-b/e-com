@@ -23,29 +23,48 @@ export default function InstallButton({
   const { isInstalled, canInstall, deferredPrompt, promptInstall, isIOS } = usePWA();
   const [isInstalling, setIsInstalling] = useState(false);
   const [installSuccess, setInstallSuccess] = useState(false);
-  
-  // Don't show the button if the app is already installed or can't be installed
-  if (isInstalled || (!canInstall && !isIOS)) {
+
+  // Don't show the button if the app is already installed
+  if (isInstalled) {
     return null;
   }
-  
+
+  // For debugging purposes, always show the button even if installation is not supported
+  // This helps with testing the UI in development
+  // In production, you might want to uncomment the following:
+  // if (!canInstall && !isIOS) {
+  //   return null;
+  // }
+
   const handleInstall = async () => {
     setIsInstalling(true);
-    
-    if (isIOS) {
-      // For iOS, we can't automatically install, so we show instructions
-      // This would typically open a modal with instructions
-      console.log('iOS installation instructions should be shown');
-      setInstallSuccess(true);
-    } else if (deferredPrompt) {
-      // For other browsers that support installation
-      const installed = await promptInstall();
-      setInstallSuccess(installed);
+
+    try {
+      if (isIOS) {
+        // For iOS, we can't automatically install, so we show instructions
+        alert('To install this app on iOS: tap the share button and then "Add to Home Screen"');
+        console.log('iOS installation instructions shown');
+        setInstallSuccess(true);
+      } else if (deferredPrompt) {
+        // For other browsers that support installation
+        console.log('Prompting install with:', deferredPrompt);
+        const installed = await promptInstall();
+        console.log('Installation result:', installed);
+        setInstallSuccess(installed);
+      } else {
+        // For browsers that don't support installation or when deferredPrompt is not available
+        console.log('Installation not supported or deferredPrompt not available');
+        alert('To install this app: tap the menu button in your browser and select "Add to Home Screen" or "Install"');
+        setInstallSuccess(true);
+      }
+    } catch (error) {
+      console.error('Error during installation:', error);
+      alert('There was an error installing the app. Please try again later.');
+    } finally {
+      setIsInstalling(false);
     }
-    
-    setIsInstalling(false);
   };
-  
+
   return (
     <Button
       variant={variant}

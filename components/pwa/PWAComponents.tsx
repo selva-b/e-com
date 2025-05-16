@@ -11,11 +11,16 @@ const OfflineIndicator = dynamic(() => import('@/components/pwa/OfflineIndicator
   ssr: false,
 });
 
+const ConnectionStatus = dynamic(() => import('@/components/pwa/ConnectionStatus'), {
+  ssr: false,
+});
+
 export default function PWAComponents() {
   return (
     <>
       <OfflineIndicator />
       <InstallBanner />
+      <ConnectionStatus />
     </>
   );
 }
