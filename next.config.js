@@ -6,6 +6,15 @@ const nextConfig = {
   images: { unoptimized: true },
   typescript: {
     ignoreBuildErrors: true,
+  }, 
+  trailingSlash: false,
+  async rewrites() {
+    return [
+      {
+        source: '/zero-threat.html',
+        destination: '/zero-threat',
+      },
+    ];
   }
 };
 
