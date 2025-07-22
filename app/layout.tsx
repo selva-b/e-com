@@ -13,6 +13,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'E-com | Premium E-Commerce',
   description: 'Shop the finest products with exceptional quality',
+  other: {
+    'zerothreat-verification': 'NDIzMg==TkRJek1nPT0=TkRJek1nPT',
+  },
 };
 
 export default function RootLayout({
@@ -22,6 +25,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="zerothreat-verification" content="NDIzMg==TkRJek1nPT0=TkRJek1nPT" />
+      </head>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
