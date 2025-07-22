@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useCartContext } from '@/context/CartContext';
@@ -26,7 +26,8 @@ interface Product {
   };
 }
 
-export default function ProductPage() {
+// Component that uses useSearchParams
+function ProductContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const slug = searchParams.get('slug');
@@ -218,5 +219,47 @@ export default function ProductPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback for Suspense
+function ProductLoading() {
+  return (
+    <div className="container max-w-6xl mx-auto py-16 px-4">
+      <div className="h-9 w-32 bg-gray-200 rounded animate-pulse mb-8" />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="aspect-square bg-gray-200 rounded-lg animate-pulse" />
+        
+        <div className="space-y-4">
+          <div className="h-8 w-3/4 bg-gray-200 rounded animate-pulse" />
+          <div className="h-4 w-1/4 bg-gray-200 rounded animate-pulse" />
+          <div className="h-8 w-1/3 bg-gray-200 rounded animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-5/6 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="flex gap-4">
+            <div className="h-10 w-32 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="flex gap-4">
+            <div className="h-10 flex-1 bg-gray-200 rounded animate-pulse" />
+            <div className="h-10 w-12 bg-gray-200 rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+      <p className="text-center mt-8">Loading product...</p>
+    </div>
+  );
+}
+
+// Main component that wraps everything in Suspense
+export default function ProductPage() {
+  return (
+    <Suspense fallback={<ProductLoading />}>
+      <ProductContent />
+    </Suspense>
   );
 }

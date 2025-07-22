@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useSearchParams, redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -37,7 +37,8 @@ interface Order {
   order_items: OrderItem[];
 }
 
-export default function OrderSuccessPage() {
+// Component that uses useSearchParams
+function OrderSuccessContent() {
   const { user, profile, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('id');
@@ -212,5 +213,36 @@ export default function OrderSuccessPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function OrderSuccessLoading() {
+  return (
+    <div className="container max-w-4xl mx-auto py-16 px-4 text-center">
+      <div className="text-center mb-8">
+        <div className="h-16 w-16 mx-auto mb-4 bg-gray-200 rounded-full animate-pulse" />
+        <div className="h-8 w-64 bg-gray-200 rounded mx-auto mb-2 animate-pulse" />
+        <div className="h-4 w-96 bg-gray-200 rounded mx-auto animate-pulse" />
+      </div>
+      <div className="bg-gray-50 rounded-lg p-8 animate-pulse">
+        <div className="h-6 w-32 bg-gray-200 rounded mb-4" />
+        <div className="space-y-3">
+          <div className="h-4 bg-gray-200 rounded" />
+          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded w-1/2" />
+        </div>
+      </div>
+      <p className="mt-4 text-muted-foreground">Loading order details...</p>
+    </div>
+  );
+}
+
+// Main component that wraps everything in Suspense
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={<OrderSuccessLoading />}>
+      <OrderSuccessContent />
+    </Suspense>
   );
 }

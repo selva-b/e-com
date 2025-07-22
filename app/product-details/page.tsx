@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import ProductDetail from '@/components/products/ProductDetail';
@@ -18,7 +18,8 @@ interface Product {
   featured: boolean;
 }
 
-export default function ProductDetailsPage() {
+// Component that uses useSearchParams
+function ProductDetailsContent() {
   const searchParams = useSearchParams();
   const productId = searchParams.get('id');
   const [product, setProduct] = useState<Product | null>(null);
@@ -72,6 +73,7 @@ export default function ProductDetailsPage() {
   return <ProductDetail product={product} />;
 }
 
+// Skeleton component for loading states
 function ProductDetailSkeleton() {
   return (
     <div className="container mx-auto py-10">
@@ -96,5 +98,19 @@ function ProductDetailSkeleton() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback for Suspense boundary
+function ProductDetailsLoading() {
+  return <ProductDetailSkeleton />;
+}
+
+// Main component that wraps everything in Suspense
+export default function ProductDetailsPage() {
+  return (
+    <Suspense fallback={<ProductDetailsLoading />}>
+      <ProductDetailsContent />
+    </Suspense>
   );
 }

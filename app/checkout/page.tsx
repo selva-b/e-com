@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCartContext } from '@/context/CartContext';
 import { redirect, useRouter, useSearchParams } from 'next/navigation';
@@ -40,7 +40,8 @@ interface Address {
   is_default: boolean;
 }
 
-export default function CheckoutPage() {
+// Component that uses useSearchParams
+function CheckoutContent() {
   const { user, profile, isLoading } = useAuth();
   const { 
     cart, 
@@ -528,6 +529,82 @@ export default function CheckoutPage() {
         </div>
       </div>
     </>
+  );
+}
+
+// Loading fallback for Suspense
+function CheckoutLoading() {
+  return (
+    <div className="container max-w-4xl mx-auto py-16 px-4">
+      <div className="h-9 w-32 bg-gray-200 rounded animate-pulse mb-8" />
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+              <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="h-4 w-12 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-12 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
+                  </div>
+                </div>
+                <div className="h-10 w-full bg-gray-200 rounded animate-pulse mt-6" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div>
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+              <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="flex justify-between">
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-12 bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <div className="flex justify-between w-full">
+                <div className="h-6 w-12 bg-gray-200 rounded animate-pulse" />
+                <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
+              </div>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+      <p className="text-center mt-8">Loading checkout...</p>
+    </div>
+  );
+}
+
+// Main component that wraps everything in Suspense
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<CheckoutLoading />}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
 

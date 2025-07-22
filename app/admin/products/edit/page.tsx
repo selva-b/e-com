@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams, redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -64,7 +64,8 @@ interface Category {
   description: string | null;
 }
 
-export default function EditProductPage() {
+// Component that uses useSearchParams
+function EditProductContent() {
   const { user, isAdmin, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -503,5 +504,69 @@ export default function EditProductPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback for Suspense
+function EditProductLoading() {
+  return (
+    <div className="container mx-auto py-10 px-4">
+      <div className="flex items-center mb-6">
+        <div className="h-9 w-32 bg-gray-200 rounded animate-pulse mr-4" />
+        <div className="h-9 w-48 bg-gray-200 rounded animate-pulse" />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+              <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-32 w-full bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div>
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-square bg-gray-200 rounded animate-pulse mb-4" />
+              <div className="h-6 w-3/4 bg-gray-200 rounded animate-pulse mb-2" />
+              <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      <p className="text-center mt-8">Loading product editor...</p>
+    </div>
+  );
+}
+
+// Main component that wraps everything in Suspense
+export default function EditProductPage() {
+  return (
+    <Suspense fallback={<EditProductLoading />}>
+      <EditProductContent />
+    </Suspense>
   );
 }
